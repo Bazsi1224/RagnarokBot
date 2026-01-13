@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <TrimmerRemoveSymbols>true</TrimmerRemoveSymbols>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmSingleFileBundle>true</WasmSingleFileBundle>
+    <EventSourceSupport>false</EventSourceSupport>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <InvariantTimezone>true</InvariantTimezone>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ScreepsDotNet.API" Version="2.1.1" />
+    <PackageReference Include="ScreepsDotNet.Bundler" Version="2.1.0" />
+  </ItemGroup>
+</Project>
