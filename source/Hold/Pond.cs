@@ -18,6 +18,8 @@ namespace RagnarokBot
         IStructureContainer Container;
         IConstructionSite Site;
 
+        WorkerTask DepositTask;
+
         int places = 0;
         public int StoredEnergy = 0;
         public double Output = 0;
@@ -102,7 +104,7 @@ namespace RagnarokBot
 
             foreach (Viking fisher in roles[Constants.ROLE_FISHER])
             {
-                if (fisher.store[Constants.RESOURCE_CAPACITY] == 0)
+                if (fisher.Store[Constants.RESOURCE_CAPACITY] == 0)
                     DepositFisher(fisher);
                 else
                     fisher.Harvest(Source);
@@ -120,7 +122,7 @@ namespace RagnarokBot
 
                 }
 
-                fisher.Transfer(Container, ResourceType.Energy, fisher.store["Energy"]);
+                fisher.Transfer(Container, ResourceType.Energy, fisher.Store[ResourceType.Energy.ToString()]);
                 return;
             }
 
@@ -169,13 +171,15 @@ namespace RagnarokBot
 
         public WorkerTask GetEnergy()
         {
+            if( DepositTask != null ) return DepositTask;
+
             if (Container != null)
             {
                 int energy = Container.Store.GetUsedCapacity(ResourceType.Energy) ?? 0;
 
                 if (energy > 0)
                 {
-                    return new WorkerTask()
+                    DepositTask = new WorkerTask()
                     {
                         taskId = "Empty_Container_" + settlementName,
                         target = Container,
@@ -185,6 +189,7 @@ namespace RagnarokBot
                         ResourceNeed = energy,
                         amount = energy
                     };
+                    return DepositTask;
                 }
 
 

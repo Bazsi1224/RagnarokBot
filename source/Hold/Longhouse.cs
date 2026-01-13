@@ -5,6 +5,8 @@ using ScreepsDotNet.API;
 using ScreepsDotNet.API.World;
 using ScreepsDotNet;
 using System.Reflection.Metadata;
+using System.Net.Http.Headers;
+using System.Reflection.Metadata.Ecma335;
 
 namespace RagnarokBot
 {
@@ -18,7 +20,8 @@ namespace RagnarokBot
         List<IStructure> Fillables = new List<IStructure>();
         bool spawnFree = true;
 
-        Position[] RestPosition = new Position[2];
+        Position[] RestPositions = new Position[2];
+
 
         public Longhouse(Hold hold) : base(hold)
         {
@@ -34,8 +37,9 @@ namespace RagnarokBot
 
             BuildLonghouse();
 
-            RestPosition[0] = GetRelativePosition(  2,  2 );
-            RestPosition[1] = GetRelativePosition( -2, -2 );
+            RestPositions[0] = GetRelativePosition(  2,  2 );
+            RestPositions[1] = GetRelativePosition( -2, -2 );
+
 
             LookForPopulation();
 
@@ -161,6 +165,23 @@ namespace RagnarokBot
                 });
             }
 
+            List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
+
+            if (siteList.Count > 0 && roles[ Constants.ROLE_WORKER ].Count == 0 )
+            {
+                BodyPartType[] body = [BodyPartType.Work, BodyPartType.Work, BodyPartType.Carry, BodyPartType.Carry, BodyPartType.Move];
+                var initialMemory = game.CreateMemoryObject();
+                initialMemory.SetValue("role", Constants.ROLE_WORKER);
+                initialMemory.SetValue("hold", Room.Name);
+                initialMemory.SetValue("home", settlementName);
+
+                request.Add(new SpawnRequest
+                {
+                    Body = body,
+                    InitialMemory = initialMemory
+                });
+            }
+
             return request;
         }
 
@@ -168,45 +189,10 @@ namespace RagnarokBot
         {
             Watchtowers();
             RunHoarders();
-
-            if (Room.Storage == null)
-            {
-                RunInPrePhase();
-                return;
-            }
-        }
-
-        public void RunInPrePhase()
-        {
-
-            var constructionSites = Room.Find<IConstructionSite>(true);
-            List<IConstructionSite> siteList = new List<IConstructionSite>();
-
-            foreach (IConstructionSite site in constructionSites)
-                if (Position.LinearDistanceTo(site.RoomPosition.Position) <= 3)
-                    siteList.Add(site);
-
-            if (siteList.Count > 0)
-            {
-
-                IConstructionSite site = siteList[0];
-                hold.RequestTask(
-                new WorkerTask()
-                {
-                    taskId = "Empty_Container_" + settlementName,
-                    target = site,
-                    Type = TaskType.Build,
-                    ResourceType = ResourceType.Energy.ToString(),
-                    Severity = 1,
-                    ResourceNeed = site.ProgressTotal - site.Progress,
-                    amount = site.ProgressTotal - site.Progress
-                }
-                );
-
-            }
+            RunWorkers();
 
         }
-        
+
         public void SpawnViking(SpawnRequest request)
         {
             if (!spawnFree) return;
@@ -237,9 +223,12 @@ namespace RagnarokBot
         void RunHoarder( Viking hoarder )
         {
             
-            if( hoarder.store[ ResourceType.Energy.ToString() ] == 0 )
+            if( hoarder.Store[ ResourceType.Energy.ToString() ] == 0 )
             {
                 WorkerTask task = hold.GetEnergy();
+
+                hoarder.Task = task;
+                task.ResourceNeed -= hoarder.Store[ Constants.RESOURCE_CAPACITY ];
 
                 if (task != null)
                 {
@@ -288,11 +277,73 @@ namespace RagnarokBot
                         return;
                     }
                 }
+
+                foreach ( Viking worker in roles[ Constants.ROLE_WORKER ] )
+                {
+                    IStore store = worker.Creep.Store;
+
+                    if( store.GetFreeCapacity( ResourceType.Energy ) > 0 )
+                    {
+                        hoarder.Transfer( worker.Creep, ResourceType.Energy, store.GetFreeCapacity( ResourceType.Energy ));
+                        return;
+                    }
+                }
                 
-                hoarder.MoveTo( RestPosition[ roles[Constants.ROLE_HOARDER].IndexOf(hoarder) ] );
+                hoarder.MoveTo( RestPositions[ roles[Constants.ROLE_HOARDER].IndexOf(hoarder) ] );
                 
             }
         
         }
+    
+        void RunWorkers()
+        {
+            foreach (Viking worker in roles[Constants.ROLE_WORKER])
+            {
+                RunWorker(worker);
+            }
+        }            
+
+        void RunWorker( Viking worker )
+        {   
+            Position[] BuildPositions = [
+                GetRelativePosition(  1, 0 ), 
+                GetRelativePosition( -1, 0 )];
+            
+
+            if( worker.Store[ResourceType.Energy.ToString()] == 0 )
+                return;
+
+            for( int position_index = 0 ; position_index < BuildPositions.Length; position_index++ )
+            {
+                List<IConstructionSite> siteList = ListSitesForBuildPos(position_index);
+
+                if( siteList.Count > 0 ) worker.MoveTo( BuildPositions[position_index] );
+                foreach ( IConstructionSite site in siteList)
+                {
+                    if( worker.Build( site, false ) == 0 )
+                        return;
+                }
+            }            
+        }
+
+        List<IConstructionSite> ListSitesForBuildPos( int position_index )
+        {
+            List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
+
+            Position[] BuildPositions = [
+                GetRelativePosition(  1, 0 ), 
+                GetRelativePosition( -1, 0 )];
+
+            List<IConstructionSite> response = new List<IConstructionSite>();
+
+            foreach (IConstructionSite site in siteList)
+            {
+                if( BuildPositions[position_index].LinearDistanceTo( site.RoomPosition.Position ) <= 3 )
+                    response.Add( site );
+            }
+
+            return response;
+        }
+
     }
 }

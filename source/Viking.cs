@@ -9,10 +9,10 @@ namespace RagnarokBot
     public class Viking
     {
         public ICreep Creep;
-        public string role;
-        public string home;
-        public WorkerTask task;
-        public Dictionary<string, int> store = new Dictionary<string, int>();
+        public string Role;
+        public string Home;
+        public WorkerTask Task;
+        public Dictionary<string, int> Store = new Dictionary<string, int>();
 
         public Position Pos
         {
@@ -41,18 +41,18 @@ namespace RagnarokBot
         {
             Creep = creep;
 
-            creep.Memory.TryGetString( "role", out role );
+            creep.Memory.TryGetString( "role", out Role );
 
-            if( role == null )
-                role = "Unassigned";
+            if( Role == null )
+                Role = "Unassigned";
             
-            creep.Memory.TryGetString( "home", out home );
+            creep.Memory.TryGetString( "home", out Home );
 
-            if( role == null )
-                role = "Hold";
+            if( Role == null )
+                Role = "Hold";
 
-            store[ResourceType.Energy.ToString()] = Creep.Store.GetUsedCapacity( ResourceType.Energy ) ?? 0;
-            store[Constants.RESOURCE_CAPACITY] = Creep.Store.GetFreeCapacity( ResourceType.Energy ) ?? 0;
+            Store[ResourceType.Energy.ToString()] = Creep.Store.GetUsedCapacity( ResourceType.Energy ) ?? 0;
+            Store[Constants.RESOURCE_CAPACITY] = Creep.Store.GetFreeCapacity( ResourceType.Energy ) ?? 0;
         }
 
         public int MoveTo( Position target )
@@ -115,9 +115,9 @@ namespace RagnarokBot
                 return -1;
             }            
 
-            if( store[resource.ToString()] < amount )
+            if( Store[resource.ToString()] < amount )
             {
-                amount = store[resource.ToString()];
+                amount = Store[resource.ToString()];
             }
 
             IWithStore targetwstore = target as IWithStore;
@@ -149,9 +149,9 @@ namespace RagnarokBot
                 return -1;
             }
 
-            if( store[resource.ToString()] < amount )
+            if( Store[resource.ToString()] < amount )
             {
-                amount = store[resource.ToString()];
+                amount = Store[resource.ToString()];
             }
             if( target.Store.GetFreeCapacity(resource) < amount )
             {
@@ -204,9 +204,9 @@ namespace RagnarokBot
                 return;
             }
 
-            if( store[Constants.RESOURCE_CAPACITY] < amount )
+            if( Store[Constants.RESOURCE_CAPACITY] < amount )
             {
-                amount = store[Constants.RESOURCE_CAPACITY];
+                amount = Store[Constants.RESOURCE_CAPACITY];
             }
             
             CreepTransferResult ret = targetCreep.Transfer( this.Creep, resource, amount );
@@ -232,9 +232,9 @@ namespace RagnarokBot
                 return;
             }
 
-            if( store[Constants.RESOURCE_CAPACITY] < amount )
+            if( Store[Constants.RESOURCE_CAPACITY] < amount )
             {
-                amount = store[Constants.RESOURCE_CAPACITY];
+                amount = Store[Constants.RESOURCE_CAPACITY];
             }
             
             CreepWithdrawResult ret = this.Creep.Withdraw( target, resource, amount );
@@ -253,12 +253,12 @@ namespace RagnarokBot
         }
 
 
-        public void Build( IConstructionSite targetConstructionSite )
+        public int Build( IConstructionSite targetConstructionSite, bool moveToSite = true )
         {
             if( targetConstructionSite == null )
             {
                 Console.WriteLine( "No target construction site to build!" );
-                return;
+                return -1;
             }
 
             CreepBuildResult ret = Creep.Build( targetConstructionSite );
@@ -266,13 +266,17 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepBuildResult.NotInRange:
-                    Creep.MoveTo( targetConstructionSite.RoomPosition );
-                    return;
+                    if( moveToSite ) 
+                    {
+                        Creep.MoveTo( targetConstructionSite.RoomPosition );
+                        return 1;
+                    }
+                    return -1;
                 case CreepBuildResult.Ok:
-                    return;
+                    return 0;
                 default:
                     Console.WriteLine( $"Build failed: {ret}" );
-                    return;
+                    return -1;
             }
         }
         public void Repair( IStructure targetStructure )
