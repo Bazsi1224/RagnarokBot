@@ -152,7 +152,7 @@ namespace RagnarokBot
 
             if( roles[Constants.ROLE_HOARDER].Count < 2 )
             {
-                BodyPartType[] body = [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry];
+                BodyPartType[] body = GetHoarderBody();
                 var initialMemory = game.CreateMemoryObject();
                 initialMemory.SetValue("role", Constants.ROLE_HOARDER);
                 initialMemory.SetValue("hold", Room.Name);
@@ -169,7 +169,7 @@ namespace RagnarokBot
 
             if (siteList.Count > 0 && roles[ Constants.ROLE_WORKER ].Count == 0 )
             {
-                BodyPartType[] body = [BodyPartType.Work, BodyPartType.Work, BodyPartType.Carry, BodyPartType.Carry, BodyPartType.Move];
+                BodyPartType[] body = GetWorkerBody();
                 var initialMemory = game.CreateMemoryObject();
                 initialMemory.SetValue("role", Constants.ROLE_WORKER);
                 initialMemory.SetValue("hold", Room.Name);
@@ -183,6 +183,38 @@ namespace RagnarokBot
             }
 
             return request;
+        }
+
+        public BodyPartType[] GetWorkerBody()
+        {
+            BodyPartType[][] stages = [
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work]
+            ];
+            
+            foreach( BodyPartType[] stage in stages )
+                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+                    return stage;
+
+            return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
+        }
+
+        public BodyPartType[] GetHoarderBody()
+        {
+            BodyPartType[][] stages = [
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry ],
+            ];
+            
+            foreach( BodyPartType[] stage in stages )
+                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+                    return stage;
+
+            return [BodyPartType.Move, BodyPartType.Carry];
         }
 
         public void Run()
@@ -331,8 +363,8 @@ namespace RagnarokBot
             List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
 
             Position[] BuildPositions = [
-                GetRelativePosition(  1, 0 ), 
-                GetRelativePosition( -1, 0 )];
+                GetRelativePosition( 0, 1 ), 
+                GetRelativePosition( 0,-1 )];
 
             List<IConstructionSite> response = new List<IConstructionSite>();
 

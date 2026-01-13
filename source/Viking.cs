@@ -8,6 +8,7 @@ namespace RagnarokBot
 {
     public class Viking
     {
+        static IGame game = ScreepsDotNet.Program.game;
         public ICreep Creep;
         public string Role;
         public string Home;
@@ -26,15 +27,15 @@ namespace RagnarokBot
 
         public int HarvestCapacity
         {
-            get { return Creep.BodyType[BodyPartType.Work] * 2; }
+            get { return Creep.BodyType[BodyPartType.Work] * game.Constants.Creep.HarvestPower; }
         }
         public int PrayCapacity
         {
-            get { return Creep.BodyType[BodyPartType.Work] * 1; }
+            get { return Creep.BodyType[BodyPartType.Work] * game.Constants.Creep.UpgradeControllerPower; }
         }
         public int BuildCapacity
         {
-            get { return Creep.BodyType[BodyPartType.Work] * 5; }
+            get { return Creep.BodyType[BodyPartType.Work] * game.Constants.Creep.BuildPower; }
         }
 
         public Viking( ICreep? creep )

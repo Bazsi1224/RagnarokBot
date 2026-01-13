@@ -18,8 +18,6 @@ namespace RagnarokBot
         public List<Viking> Population = new List<Viking>();
         protected Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
 
-        public List<SpawnRequest> peopleRequest = new List<SpawnRequest>();
-
         public int Width = 1;
         public int Height = 1;
 

@@ -36,22 +36,6 @@ namespace RagnarokBot
             Height = SIZE;
             Position = Source.RoomPosition.Position;
 
-            if (roles[Constants.ROLE_FISHER].Count < 3)
-            {
-                BodyPartType[] body = [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
-                var initialMemory = game.CreateMemoryObject();
-                initialMemory.SetValue("role", "Fisher");
-                initialMemory.SetValue("hold", Room.Name);
-                initialMemory.SetValue("home", settlementName);
-
-                peopleRequest.Add(new SpawnRequest
-                {
-                    Body = body,
-                    InitialMemory = initialMemory
-                });
-
-            }
-
             FindStructures();
 
             if (Container != null &&
@@ -80,6 +64,34 @@ namespace RagnarokBot
             Output = Math.Min(10.0, Output);
 
             //Console.WriteLine( $"{settlementName} capacity is {Output}" );
+        }
+
+        public List<SpawnRequest> GetSpawnRequest()
+        {
+            List<SpawnRequest> request = new List<SpawnRequest>();
+
+            int HarvestCapacity = 0;
+
+            foreach( Viking fisher in roles[Constants.ROLE_FISHER] )
+                HarvestCapacity += fisher.HarvestCapacity;
+            
+            if ( HarvestCapacity < 10 )
+            {
+                BodyPartType[] body = GetWorkerBody();
+                var initialMemory = game.CreateMemoryObject();
+                initialMemory.SetValue("role", "Fisher");
+                initialMemory.SetValue("hold", Room.Name);
+                initialMemory.SetValue("home", settlementName);
+
+                request.Add(new SpawnRequest
+                {
+                    Body = body,
+                    InitialMemory = initialMemory
+                });
+
+            }
+
+            return request;
         }
 
         public void Run()
@@ -195,7 +207,32 @@ namespace RagnarokBot
 
             }
 
-            return null;
+            return new WorkerTask()
+            {
+                taskId = "Fish_pond_" + settlementName,
+                        target = Source,
+                        Type = TaskType.Fish,
+                        ResourceType = Constants.RESOURCE_CAPACITY,
+                        Severity = 0,
+                        ResourceNeed = 3000,
+                        amount = 3000
+                    };
+        }
+    
+        public BodyPartType[] GetWorkerBody()
+        {
+            BodyPartType[][] stages = [
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work]
+            ];
+            
+            foreach( BodyPartType[] stage in stages )
+                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+                    return stage;
+
+            return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
         }
     }
 }

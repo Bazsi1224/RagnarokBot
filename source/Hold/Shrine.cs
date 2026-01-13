@@ -41,7 +41,7 @@ namespace RagnarokBot
 
             if( roles[Constants.ROLE_WORKER].Count / 2 > roles[Constants.ROLE_HOARDER].Count )
             {
-                BodyPartType[] body = [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry];
+                BodyPartType[] body = GetHoarderBody();
                 var initialMemory = game.CreateMemoryObject();
                 initialMemory.SetValue("role", Constants.ROLE_HOARDER);
                 initialMemory.SetValue("hold", Room.Name);
@@ -56,7 +56,7 @@ namespace RagnarokBot
 
             if (EnergyInput > EnergyUsed)
             {
-                BodyPartType[] body = [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
+                BodyPartType[] body = GetWorkerBody();
                 var initialMemory = game.CreateMemoryObject();
                 initialMemory.SetValue("role", Constants.ROLE_WORKER);
                 initialMemory.SetValue("hold", Room.Name);
@@ -70,6 +70,38 @@ namespace RagnarokBot
             }
 
             return request;
+        }
+
+        public BodyPartType[] GetWorkerBody()
+        {
+            BodyPartType[][] stages = [
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work]
+            ];
+            
+            foreach( BodyPartType[] stage in stages )
+                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+                    return stage;
+
+            return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
+        }
+
+        public BodyPartType[] GetHoarderBody()
+        {
+            BodyPartType[][] stages = [
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
+                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry ],
+            ];
+            
+            foreach( BodyPartType[] stage in stages )
+                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+                    return stage;
+
+            return [BodyPartType.Move, BodyPartType.Carry];
         }
 
         public void Run()

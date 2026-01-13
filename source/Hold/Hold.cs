@@ -76,17 +76,81 @@ namespace RagnarokBot
         {
             ManageRecruitment();
 
-            try{ longHouse.Run();} catch( Exception e ) { Console.WriteLine( e ); }
-            try{ shrine.Run();} catch( Exception e ) { Console.WriteLine( e ); }
-            
-
-            AssignTasks();  
             RunWorkers();
-
+            try{ longHouse.Run();} catch( Exception e ) { Console.WriteLine( e ); }
+            try{ shrine.Run();} catch( Exception e ) { Console.WriteLine( e ); }        
             foreach( Pond pond in ponds )
                 try{ pond.Run();} catch( Exception e ) { Console.WriteLine( e ); }
 
             Report();            
+        }
+
+
+        void RunWorkers()
+        {
+            string debugMessage = "";
+
+            foreach( Viking worker in roles[ Constants.ROLE_WORKER ] )
+            {
+                try
+                {
+                    RunWorker( worker );
+                }
+                catch( Exception e )
+                {
+                    Console.WriteLine( $"Error running worker {worker.Name}: {e.Message}" );
+                    Console.WriteLine( e.StackTrace );
+                    Console.WriteLine( debugMessage );
+                }
+            }
+        }
+
+        void RunWorker( Viking worker )
+        {
+            if( worker.Store[Constants.RESOURCE_CAPACITY] == 0 )
+            {
+                IStructureSpawn Spawn = new List<IStructureSpawn>(Room.Find<IStructureSpawn>(true))[0];
+
+                worker.Transfer( Spawn, ResourceType.Energy, worker.Store[ResourceType.Energy.ToString()] );
+            }
+            else
+            {
+                worker.Task = GetEnergy();
+
+                if( worker.Task == null ) return;
+
+                IStructure targetStructure;
+                ICreep targetCreep;
+
+                switch( worker.Task.Type )
+                {
+                    case TaskType.Collect:
+                        targetStructure = worker.Task.target as IStructure;
+                        if( targetStructure != null )
+                        {
+                            worker.Take( targetStructure, ResourceType.Energy, worker.Task.amount );
+                        }
+                        break;
+                    case TaskType.Take:
+                        targetCreep = worker.Task.target as ICreep;
+                        if( targetCreep != null )
+                        {
+                            worker.Take( targetCreep, ResourceType.Energy, worker.Task.amount );
+                        }
+                        break;
+                    case TaskType.Fish:
+                        ISource targetSource = worker.Task.target as ISource;
+                        if( targetSource != null )
+                        {
+                            worker.Harvest( targetSource );
+                        }
+                        break;
+                    default:
+                        Console.WriteLine( $"Worker {worker.Name} has no task!" );
+                        break;
+                }
+            }
+
         }
 
         void Report()
@@ -117,14 +181,14 @@ namespace RagnarokBot
             foreach( Pond pond in ponds )
                 availableEnergy += pond.Output;
 
-            shrine.EnergyInput = availableEnergy;
+            shrine.EnergyInput = 0.8 * availableEnergy;
 
             Dictionary<string, List<SpawnRequest>> requests = new Dictionary<string, List<SpawnRequest>>();            
 
             requests.Add( "self", OwnRecruitmentRequest());
 
             foreach( Pond pond in ponds )
-                requests.Add( pond.Name, pond.peopleRequest);
+                requests.Add( pond.Name, pond.GetSpawnRequest());
 
             requests.Add( longHouse.Name, longHouse.GetSpawnRequest());
             requests.Add( shrine.Name, shrine.GetSpawnRequest());
