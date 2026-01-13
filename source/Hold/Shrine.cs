@@ -39,7 +39,7 @@ namespace RagnarokBot
         {
             List<SpawnRequest> request = new List<SpawnRequest>();
 
-            if( roles[Constants.ROLE_WORKER].Count / 3 > roles[Constants.ROLE_HOARDER].Count )
+            if( roles[Constants.ROLE_WORKER].Count / 2 > roles[Constants.ROLE_HOARDER].Count )
             {
                 BodyPartType[] body = [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry];
                 var initialMemory = game.CreateMemoryObject();
@@ -107,13 +107,16 @@ namespace RagnarokBot
 
         void RunPriest(Viking priest)
         {
-            if (priest.store[ResourceType.Energy.ToString()] > 0)
+            if (priest.Store[ResourceType.Energy.ToString()] > 0)
             {
                 priest.Pray(Controller);
             }
             else
             {
                 WorkerTask task = hold.GetEnergy();
+
+                priest.Task = task;
+                task.ResourceNeed -= priest.Store[ Constants.RESOURCE_CAPACITY ];
 
                 if (task != null)
                 {
@@ -154,9 +157,12 @@ namespace RagnarokBot
     
         void RunHoarder( Viking hoarder )
         {
-            if( hoarder.store[ ResourceType.Energy.ToString() ] == 0 )
+            if( hoarder.Store[ ResourceType.Energy.ToString() ] == 0 )
             {
                 WorkerTask task = hold.GetEnergy();
+
+                hoarder.Task = task;
+                task.ResourceNeed -= hoarder.Store[ Constants.RESOURCE_CAPACITY ];
 
                 if (task != null)
                 {
@@ -200,14 +206,14 @@ namespace RagnarokBot
                     Viking bestViking = null;
                     int mostCapacity = 0;
 
-                    if( priest.store[ Constants.RESOURCE_CAPACITY ] > mostCapacity )
+                    if( priest.Store[ Constants.RESOURCE_CAPACITY ] > mostCapacity )
                     {
-                        mostCapacity = priest.store[ Constants.RESOURCE_CAPACITY ];
+                        mostCapacity = priest.Store[ Constants.RESOURCE_CAPACITY ];
                         bestViking = priest;
                     }
 
                     if( bestViking != null )                    
-                        hoarder.Transfer( priest.Creep, ResourceType.Energy, priest.store[ Constants.RESOURCE_CAPACITY ]);
+                        hoarder.Transfer( priest.Creep, ResourceType.Energy, priest.Store[ Constants.RESOURCE_CAPACITY ]);
                 }
             }
         }

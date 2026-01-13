@@ -93,10 +93,10 @@ namespace RagnarokBot
 
             foreach( Viking viking in hold.Population )
             {
-                if( viking.home == settlementName)
+                if( viking.Home == settlementName)
                 {
                     Population.Add( viking );
-                    roles[viking.role].Add( viking ); 
+                    roles[viking.Role].Add( viking ); 
                 }
             }
         }

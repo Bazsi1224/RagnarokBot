@@ -81,7 +81,6 @@ namespace RagnarokBot
             
 
             AssignTasks();  
-            RunHoarders();    
             RunWorkers();
 
             foreach( Pond pond in ponds )
@@ -106,7 +105,7 @@ namespace RagnarokBot
             foreach (Pond pond in ponds)
             {
                 WorkerTask task = pond.GetEnergy();    
-                if( task != null )
+                if( task != null && task.ResourceNeed > 0 )
                     return task;            
             }
             return null;          

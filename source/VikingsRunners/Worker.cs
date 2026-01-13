@@ -30,13 +30,13 @@ namespace RagnarokBot
 
         void RunWorker( Viking worker )
         {            
-            if( worker.Pos.IsNextTo( ponds[0].Source.RoomPosition.Position ) && worker.store[Constants.RESOURCE_CAPACITY] > 0 )
+            if( worker.Pos.IsNextTo( ponds[0].Source.RoomPosition.Position ) && worker.Store[Constants.RESOURCE_CAPACITY] > 0 )
             {
                 worker.Harvest( ponds[0].Source );
                 return;
             }
 
-            if( worker.task == null )
+            if( worker.Task == null )
             {
                 Console.WriteLine( $"Worker {worker.Name} has no task!" );
                 return;
@@ -45,17 +45,17 @@ namespace RagnarokBot
             IStructure targetStructure;
             ICreep targetCreep;
 
-            switch( worker.task.Type )
+            switch( worker.Task.Type )
             {
                 case TaskType.Pray:
-                    IStructureController controller = worker.task.target as IStructureController;
+                    IStructureController controller = worker.Task.target as IStructureController;
                     if( controller != null )
                     {
                         var result = worker.Pray( controller );
                     }
                     break;
                 case TaskType.Build:
-                    IConstructionSite targetSite = worker.task.target as IConstructionSite;
+                    IConstructionSite targetSite = worker.Task.target as IConstructionSite;
                     if( targetSite != null )
                     {
                         worker.Build( targetSite );
@@ -64,28 +64,28 @@ namespace RagnarokBot
                 case TaskType.Repair:
                     break;
                 case TaskType.Collect:
-                    targetStructure = worker.task.target as IStructure;
+                    targetStructure = worker.Task.target as IStructure;
                     if( targetStructure != null )
                     {
-                        worker.Take( targetStructure, ResourceType.Energy, worker.task.amount );
+                        worker.Take( targetStructure, ResourceType.Energy, worker.Task.amount );
                     }
                     break;
                 case TaskType.Fill:
-                    targetStructure = worker.task.target as IStructure;
+                    targetStructure = worker.Task.target as IStructure;
                     if( targetStructure != null )
                     {
-                        worker.Transfer( targetStructure, ResourceType.Energy, worker.task.amount );
+                        worker.Transfer( targetStructure, ResourceType.Energy, worker.Task.amount );
                     }
                     break;
                 case TaskType.Take:
-                    targetCreep = worker.task.target as ICreep;
+                    targetCreep = worker.Task.target as ICreep;
                     if( targetCreep != null )
                     {
-                        worker.Take( targetCreep, ResourceType.Energy, worker.task.amount );
+                        worker.Take( targetCreep, ResourceType.Energy, worker.Task.amount );
                     }
                     break;
                 case TaskType.Fish:
-                    ISource targetSource = worker.task.target as ISource;
+                    ISource targetSource = worker.Task.target as ISource;
                     if( targetSource != null )
                     {
                         worker.Harvest( targetSource );
