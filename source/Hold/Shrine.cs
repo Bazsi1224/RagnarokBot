@@ -10,6 +10,7 @@ namespace RagnarokBot
 {
     public class Shrine : Settlement
     {
+        const string SHRINE_MESSAGE = "Behold the Ragnarök!";
         const int SIZE = 5;
         IStructureController Controller;
         IStructureContainer Container;
@@ -229,6 +230,13 @@ namespace RagnarokBot
                 }
                 
                 priest.Pray(Controller);
+
+                ControllerSign sign = (ControllerSign)Controller.Sign;
+                if( Controller.Sign == null || sign.Text != SHRINE_MESSAGE )
+                {
+                    priest.MoveTo( Controller.RoomPosition.Position );
+                    priest.Creep.SignController( Controller, SHRINE_MESSAGE );
+                }
             }
             else
             {
