@@ -240,6 +240,12 @@ namespace RagnarokBot
             }
             else
             {
+                if( Container != null )
+                {
+                    priest.Take(Container, ResourceType.Energy, priest.Store[Constants.RESOURCE_CAPACITY]);
+                    return;
+                }
+
                 WorkerTask task = hold.GetEnergy();
 
                 priest.Task = task;
@@ -328,6 +334,12 @@ namespace RagnarokBot
             }
             else
             {
+                if( Container != null )
+                {
+                   hoarder.Transfer( Container, ResourceType.Energy, hoarder.Store[ Constants.RESOURCE_CAPACITY ]);
+                   return;
+                }
+
                 foreach (Viking priest in roles[Constants.ROLE_WORKER])
                 {
                     Viking bestViking = null;
