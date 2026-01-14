@@ -12,7 +12,8 @@ namespace RagnarokBot
     {
         const int SIZE = 5;
         IStructureController Controller;
-
+        IStructureContainer Container;
+        IConstructionSite Site;
         public double EnergyUsed = 0;
         public double EnergyNeed = 0;
         public double EnergyInput = 0;
@@ -28,11 +29,82 @@ namespace RagnarokBot
             Position = Controller.RoomPosition.Position;
 
             LookForPopulation();
+            FindContainer();
 
             EnergyNeed = Controller.Level == 8 ? 15 : 5000;
 
             foreach (Viking priest in roles[Constants.ROLE_WORKER])
                 EnergyUsed += priest.PrayCapacity;
+        }
+
+        public void FindContainer()
+        {
+            if (Container == null)
+            {
+                var containers = Room.Find<IStructureContainer>();
+
+                foreach (IStructureContainer container in containers)
+                {
+                    if (Controller.RoomPosition.Position.LinearDistanceTo(container.RoomPosition.Position) <= 2)
+                    {
+                        Container = container;
+                        return;
+                    }
+                }
+            }
+
+            if (Site == null)
+            {
+                var containerSites = Room.Find<IConstructionSite>(true);
+
+                foreach (IConstructionSite containerSite in containerSites)
+                {
+
+                    if (Controller.RoomPosition.Position.LinearDistanceTo(containerSite.RoomPosition.Position) <= 2 &&
+                        containerSite.StructureType.ToString().EndsWith("IStructureContainer") )
+                    {
+                        Site = containerSite;
+                        return;
+                    }
+                }
+            }
+
+            IRoomTerrain terrain = Room.GetTerrain();
+            Position ControllerPosition = Controller.RoomPosition.Position;
+
+            for( int i = -2; i <= 2; i++ )
+            {
+                if( CheckPositionForContainer( new Position( ControllerPosition.X - 2, ControllerPosition.Y + i ), terrain ) )
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X - 2, ControllerPosition.Y + i ));
+                    return;
+                }
+                if( CheckPositionForContainer( new Position( ControllerPosition.X + 2, ControllerPosition.Y + i ), terrain ) )
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + 2, ControllerPosition.Y + i ));
+                    return;
+                }
+                if( CheckPositionForContainer( new Position( ControllerPosition.X + i, ControllerPosition.Y - 2 ), terrain ) )
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + i, ControllerPosition.Y - 2 ));
+                    return;
+                }
+                if( CheckPositionForContainer( new Position( ControllerPosition.X + i, ControllerPosition.Y + 2 ), terrain ) )
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + i, ControllerPosition.Y + 2 ));
+                    return;
+                }
+            }
+
+        }
+
+        bool CheckPositionForContainer( Position position, IRoomTerrain terrain )
+        {
+            for( int x = -1; x <= 1; x++ )
+                for( int y = -1; y <= 1; y++ )
+                    if( terrain[ new Position( position.X + x, position.Y + y ) ] == Terrain.Wall ) return false;                    
+            
+            return true;
         }
 
         public List<SpawnRequest> GetSpawnRequest()
@@ -141,6 +213,21 @@ namespace RagnarokBot
         {
             if (priest.Store[ResourceType.Energy.ToString()] > 0)
             {
+                // Priest #2 does the chores
+                if( roles[Constants.ROLE_WORKER].IndexOf( priest ) == 1 )
+                {
+                    if(Site != null)
+                    {
+                        priest.Build(Site);
+                        return;
+                    }                   
+                    
+                    if( Container != null &&
+                        Container.Hits < Container.HitsMax )
+                        priest.Repair( Container );
+
+                }
+                
                 priest.Pray(Controller);
             }
             else
