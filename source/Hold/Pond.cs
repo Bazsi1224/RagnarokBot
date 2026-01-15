@@ -72,10 +72,10 @@ namespace RagnarokBot
 
             int HarvestCapacity = 0;
 
-            foreach( Viking fisher in roles[Constants.ROLE_FISHER] )
+            foreach (Viking fisher in roles[Constants.ROLE_FISHER])
                 HarvestCapacity += fisher.HarvestCapacity;
-            
-            if ( HarvestCapacity < 10 )
+
+            if (HarvestCapacity < 10)
             {
                 BodyPartType[] body = GetWorkerBody();
                 var initialMemory = game.CreateMemoryObject();
@@ -101,7 +101,7 @@ namespace RagnarokBot
 
             Room.Visual.Text(
                 Output.ToString("0.00"),
-                new FractionalPosition( (double)Position.X, (double)Position.Y ),
+                new FractionalPosition((double)Position.X, (double)Position.Y),
                 new TextVisualStyle()
                 {
                     Color = new Color(255, 0, 255, 0),
@@ -179,11 +179,45 @@ namespace RagnarokBot
                     }
                 }
             }
+
+            IRoomTerrain terrain = Room.GetTerrain();
+            Position SourcePosition = Source.RoomPosition.Position;
+
+            for (int i = -1; i <= 1; i++)
+            {
+                if (CheckPositionForContainer(new Position(SourcePosition.X - 1, SourcePosition.Y + i), terrain))
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position(SourcePosition.X - 1, SourcePosition.Y + i));
+                    return;
+                }
+                if (CheckPositionForContainer(new Position(SourcePosition.X + 1, SourcePosition.Y + i), terrain))
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position(SourcePosition.X + 1, SourcePosition.Y + i));
+                    return;
+                }
+                if (CheckPositionForContainer(new Position(SourcePosition.X + i, SourcePosition.Y - 1), terrain))
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position(SourcePosition.X + i, SourcePosition.Y - 1));
+                    return;
+                }
+                if (CheckPositionForContainer(new Position(SourcePosition.X + i, SourcePosition.Y + 1), terrain))
+                {
+                    Room.CreateConstructionSite<IStructureContainer>(new Position(SourcePosition.X + i, SourcePosition.Y + 1));
+                    return;
+                }
+            }
+
+        }
+
+        bool CheckPositionForContainer(Position position, IRoomTerrain terrain)
+        {
+            if (terrain[new Position(position.X, position.Y)] == Terrain.Wall) return false;
+            return true;
         }
 
         public WorkerTask GetEnergy()
         {
-            if( DepositTask != null ) return DepositTask;
+            if (DepositTask != null) return DepositTask;
 
             if (Container != null)
             {
@@ -203,22 +237,37 @@ namespace RagnarokBot
                     };
                     return DepositTask;
                 }
+            }
 
-
+            foreach (Viking fisher in roles[Constants.ROLE_FISHER])
+            {
+                if (fisher.Store[ResourceType.Energy.ToString()] > 0)
+                {
+                    return new WorkerTask()
+                    {
+                        taskId = "Take_fisher_" + settlementName,
+                        target = fisher.Creep,
+                        Type = TaskType.Take,
+                        ResourceType = Constants.RESOURCE_CAPACITY,
+                        Severity = 0,
+                        ResourceNeed = fisher.Store[ResourceType.Energy.ToString()],
+                        amount = fisher.Store[ResourceType.Energy.ToString()]
+                    };
+                }
             }
 
             return new WorkerTask()
             {
                 taskId = "Fish_pond_" + settlementName,
-                        target = Source,
-                        Type = TaskType.Fish,
-                        ResourceType = Constants.RESOURCE_CAPACITY,
-                        Severity = 0,
-                        ResourceNeed = 3000,
-                        amount = 3000
-                    };
+                target = Source,
+                Type = TaskType.Fish,
+                ResourceType = Constants.RESOURCE_CAPACITY,
+                Severity = 0,
+                ResourceNeed = 3000,
+                amount = 3000
+            };
         }
-    
+
         public BodyPartType[] GetWorkerBody()
         {
             BodyPartType[][] stages = [
@@ -227,9 +276,9 @@ namespace RagnarokBot
                 [BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
                 [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work]
             ];
-            
-            foreach( BodyPartType[] stage in stages )
-                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+
+            foreach (BodyPartType[] stage in stages)
+                if (Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage))
                     return stage;
 
             return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];

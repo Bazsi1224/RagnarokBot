@@ -208,7 +208,7 @@ namespace RagnarokBot
             List<SpawnRequest> request = new List<SpawnRequest>();
 
 
-            if( Population.Count == 0 )
+            if( Population.Count <= 1 )
             {
                 BodyPartType[] body = [BodyPartType.Work, BodyPartType.Carry, BodyPartType.Move];
                 var initialMemory = game.CreateMemoryObject();
