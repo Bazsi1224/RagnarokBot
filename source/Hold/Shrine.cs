@@ -246,7 +246,7 @@ namespace RagnarokBot
                     return;
                 }
 
-                WorkerTask task = hold.GetEnergy();
+                WorkerTask task = hold.GetEnergy( priest );
 
                 priest.Task = task;
                 task.ResourceNeed -= priest.Store[ Constants.RESOURCE_CAPACITY ];
@@ -292,7 +292,7 @@ namespace RagnarokBot
         {
             if( hoarder.Store[ ResourceType.Energy.ToString() ] == 0 )
             {
-                WorkerTask task = hold.GetEnergy();
+                WorkerTask task = hold.GetEnergy(hoarder);
 
                 hoarder.Task = task;
                 task.ResourceNeed -= hoarder.Store[ Constants.RESOURCE_CAPACITY ];

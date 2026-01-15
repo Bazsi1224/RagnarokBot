@@ -18,7 +18,7 @@ namespace RagnarokBot
         IStructureContainer Container;
         IConstructionSite Site;
 
-        WorkerTask DepositTask;
+        public WorkerTask DepositTask;
 
         int places = 0;
         public int StoredEnergy = 0;
@@ -243,7 +243,7 @@ namespace RagnarokBot
             {
                 if (fisher.Store[ResourceType.Energy.ToString()] > 0)
                 {
-                    return new WorkerTask()
+                    DepositTask = new WorkerTask()
                     {
                         taskId = "Take_fisher_" + settlementName,
                         target = fisher.Creep,
@@ -253,10 +253,11 @@ namespace RagnarokBot
                         ResourceNeed = fisher.Store[ResourceType.Energy.ToString()],
                         amount = fisher.Store[ResourceType.Energy.ToString()]
                     };
+                    return DepositTask;
                 }
             }
 
-            return new WorkerTask()
+            DepositTask = new WorkerTask()
             {
                 taskId = "Fish_pond_" + settlementName,
                 target = Source,
@@ -266,6 +267,8 @@ namespace RagnarokBot
                 ResourceNeed = 3000,
                 amount = 3000
             };
+
+            return DepositTask;
         }
 
         public BodyPartType[] GetWorkerBody()

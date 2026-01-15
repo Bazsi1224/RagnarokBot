@@ -255,7 +255,7 @@ namespace RagnarokBot
             
             if( hoarder.Store[ ResourceType.Energy.ToString() ] == 0 )
             {
-                WorkerTask task = hold.GetEnergy();
+                WorkerTask task = hold.GetEnergy(hoarder);
 
                 hoarder.Task = task;
                 task.ResourceNeed -= hoarder.Store[ Constants.RESOURCE_CAPACITY ];

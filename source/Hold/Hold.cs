@@ -115,7 +115,7 @@ namespace RagnarokBot
             }
             else
             {
-                worker.Task = GetEnergy();
+                worker.Task = GetEnergy(worker);
 
                 if( worker.Task == null ) return;
 
@@ -164,15 +164,30 @@ namespace RagnarokBot
             tasks.Add(task);
         }
 
-        public WorkerTask GetEnergy()
+        public WorkerTask GetEnergy( Viking viking )
         {
+            List<WorkerTask> availableTasks = new List<WorkerTask>();
             foreach (Pond pond in ponds)
             {
                 WorkerTask task = pond.GetEnergy();    
                 if( task != null && task.ResourceNeed > 0 )
-                    return task;            
+                    availableTasks.Add(task);            
             }
-            return null;          
+
+            if( availableTasks.Count == 0 )
+                return null;
+            
+            WorkerTask bestTask = null;
+            int closestTask = 500;
+
+            foreach( WorkerTask task in availableTasks )
+                if( viking.Pos.LinearDistanceTo( task.target.RoomPosition.Position ) < closestTask )
+                {
+                    closestTask = viking.Pos.LinearDistanceTo( task.target.RoomPosition.Position );
+                    bestTask = task;
+                }
+
+            return bestTask;          
         }
     
         void ManageRecruitment()
