@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using ScreepsDotNet.API;
 using ScreepsDotNet.API.World;
 using ScreepsDotNet;
-using System.Reflection.Metadata;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata.Ecma335;
+
 
 namespace RagnarokBot
 {
@@ -248,7 +246,7 @@ namespace RagnarokBot
         {
             foreach (Viking hoarder in roles[Constants.ROLE_HOARDER])
             {
-                RunHoarder(hoarder);
+                try{ RunHoarder(hoarder); } catch( Exception e ){ Console.WriteLine( $"Runnung hoarder {hoarder.Name} failed" ); Console.WriteLine( e ); }
             }
         }            
 
@@ -331,7 +329,7 @@ namespace RagnarokBot
         {
             foreach (Viking worker in roles[Constants.ROLE_WORKER])
             {
-                RunWorker(worker);
+                try{ RunWorker(worker); } catch( Exception e ){ Console.WriteLine( $"Runnung hoarder {worker.Name} failed" ); Console.WriteLine( e ); }
             }
         }            
 
