@@ -14,7 +14,7 @@ namespace RagnarokBot
         protected IRoom Room;
         protected IMemoryObject SettlementMemory;
         protected Position Position;
-        protected Direction Orientation;
+        protected Direction Orientation = Direction.Top;
         public List<Viking> Population = new List<Viking>();
         protected Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
 
@@ -87,7 +87,7 @@ namespace RagnarokBot
         protected void LookForPopulation( )
         {
             foreach( string role in Constants.ROLES )
-                roles[role] = new List<Viking>(); 
+                roles.Add( role, new List<Viking>() );
 
             foreach( Viking viking in hold.Population )
             {
@@ -104,13 +104,13 @@ namespace RagnarokBot
             switch( Orientation )
             {
                 case Direction.Top:
-                    return Math.Abs( pos.X - Position.X ) < Width && Math.Abs( pos.Y - Position.Y ) < Height;
+                    return Math.Abs( pos.X - Position.X ) < Math.Ceiling( Width / 2.0 ) && Math.Abs( pos.Y - Position.Y ) < Math.Ceiling( Height / 2.0 );
                 case Direction.Right:
-                    return Math.Abs( pos.X - Position.X ) < Height && Math.Abs( pos.Y - Position.Y ) < Width;
+                    return Math.Abs( pos.X - Position.X ) < Math.Ceiling( Height / 2.0 ) && Math.Abs( pos.Y - Position.Y ) < Math.Ceiling( Width / 2.0 );
                 case Direction.Bottom:
-                    return Math.Abs( pos.X - Position.X ) < Width && Math.Abs( pos.Y - Position.Y ) < Height;
+                    return Math.Abs( pos.X - Position.X ) < Math.Ceiling( Width / 2.0 ) && Math.Abs( pos.Y - Position.Y ) < Math.Ceiling( Height / 2.0 );
                 case Direction.Left:
-                    return Math.Abs( pos.X - Position.X ) < Height && Math.Abs( pos.Y - Position.Y ) < Width;
+                    return Math.Abs( pos.X - Position.X ) < Math.Ceiling( Height / 2.0 ) && Math.Abs( pos.Y - Position.Y ) < Math.Ceiling( Width / 2.0 );
                 default:
                     return false;
             }
@@ -144,5 +144,18 @@ namespace RagnarokBot
             return new Position( x, y );
         }
 
+        public List<IConstructionSite> GetConstructions()
+        {
+            List<IConstructionSite> response = new List<IConstructionSite>();
+            List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
+
+            foreach( IConstructionSite site in siteList )
+            {
+                if( IsPositionInside( site.RoomPosition.Position ) )
+                    response.Add(site);
+            }
+
+            return response;
+        }
 }
 }

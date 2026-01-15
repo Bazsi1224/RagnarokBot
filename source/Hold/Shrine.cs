@@ -19,6 +19,8 @@ namespace RagnarokBot
         public double EnergyNeed = 0;
         public double EnergyInput = 0;
 
+        Position[] PrayPositions = new Position[9];
+
         public Shrine(Hold hold) : base(hold)
         {
             Controller = Room.Controller;
@@ -31,6 +33,7 @@ namespace RagnarokBot
 
             LookForPopulation();
             FindContainer();
+            FillPrayPositions();
 
             EnergyNeed = Controller.Level == 8 ? 15 : 5000;
 
@@ -56,63 +59,75 @@ namespace RagnarokBot
 
             if (Site == null)
             {
-                var containerSites = Room.Find<IConstructionSite>(true);
-
-                foreach (IConstructionSite containerSite in containerSites)
+                var containerSites = GetConstructions();
+                if (containerSites.Count > 0)
                 {
-
-                    if (Controller.RoomPosition.Position.LinearDistanceTo(containerSite.RoomPosition.Position) <= 2 &&
-                        containerSite.StructureType.ToString().EndsWith("IStructureContainer") )
-                    {
-                        Site = containerSite;
-                        return;
-                    }
+                    Site = containerSites[0];
+                    return;
                 }
             }
 
             IRoomTerrain terrain = Room.GetTerrain();
-            Position ControllerPosition = Controller.RoomPosition.Position;
 
-            for( int i = -2; i <= 2; i++ )
+            for (int i = -2; i <= 2; i++)
             {
-                if( CheckPositionForContainer( new Position( ControllerPosition.X - 2, ControllerPosition.Y + i ), terrain ) )
+                if (CheckPositionForContainer(GetRelativePosition( -2, i ), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X - 2, ControllerPosition.Y + i ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( -2, i ));
                     return;
                 }
-                if( CheckPositionForContainer( new Position( ControllerPosition.X + 2, ControllerPosition.Y + i ), terrain ) )
+                if (CheckPositionForContainer(GetRelativePosition( 2, i ), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + 2, ControllerPosition.Y + i ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( 2, i ));
                     return;
                 }
-                if( CheckPositionForContainer( new Position( ControllerPosition.X + i, ControllerPosition.Y - 2 ), terrain ) )
+                if (CheckPositionForContainer(GetRelativePosition( i, -2 ), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + i, ControllerPosition.Y - 2 ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( i, -2 ));
                     return;
                 }
-                if( CheckPositionForContainer( new Position( ControllerPosition.X + i, ControllerPosition.Y + 2 ), terrain ) )
+                if (CheckPositionForContainer(GetRelativePosition( i, 2 ), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(new Position( ControllerPosition.X + i, ControllerPosition.Y + 2 ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( i, 2 ));
                     return;
                 }
             }
 
         }
 
-        bool CheckPositionForContainer( Position position, IRoomTerrain terrain )
+        void FillPrayPositions()
         {
+            Position basePosition = Controller.RoomPosition.Position;
+            if( Container != null ) basePosition = Container.RoomPosition.Position;
+            if( Site != null ) basePosition = Site.RoomPosition.Position;
+
+            int i = 0;
             for( int x = -1; x <= 1; x++ )
                 for( int y = -1; y <= 1; y++ )
-                    if( terrain[ new Position( position.X + x, position.Y + y ) ] == Terrain.Wall ) return false;                    
-            
+                    if( i < PrayPositions.Length )                
+                        PrayPositions[i++] = new Position( basePosition.X + x, basePosition.Y + y );
+
+        }
+
+        bool CheckPositionForContainer(Position position, IRoomTerrain terrain)
+        {
+            for (int x = -1; x <= 1; x++)
+                for (int y = -1; y <= 1; y++)
+                    if (terrain[new Position(position.X + x, position.Y + y)] == Terrain.Wall) return false;
+
             return true;
         }
 
         public List<SpawnRequest> GetSpawnRequest()
         {
             List<SpawnRequest> request = new List<SpawnRequest>();
+            
+            int CarryCapacity = 0;
+            foreach (Viking hoarder in roles[Constants.ROLE_HOARDER])
+                CarryCapacity += hoarder.CarryCapacity;
 
-            if( roles[Constants.ROLE_WORKER].Count / 2 > roles[Constants.ROLE_HOARDER].Count )
+
+            if( CarryCapacity < EnergyUsed * 50 )
             {
                 BodyPartType[] body = GetHoarderBody();
                 var initialMemory = game.CreateMemoryObject();
@@ -127,7 +142,8 @@ namespace RagnarokBot
                 });
             }
 
-            if (EnergyInput > EnergyUsed)
+            if (EnergyInput > EnergyUsed &&
+                roles[Constants.ROLE_WORKER].Count < 8)
             {
                 BodyPartType[] body = GetWorkerBody();
                 var initialMemory = game.CreateMemoryObject();
@@ -153,9 +169,9 @@ namespace RagnarokBot
                 [BodyPartType.Move, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work, BodyPartType.Work],
                 [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work]
             ];
-            
-            foreach( BodyPartType[] stage in stages )
-                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+
+            foreach (BodyPartType[] stage in stages)
+                if (Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage))
                     return stage;
 
             return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
@@ -169,9 +185,9 @@ namespace RagnarokBot
                 [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
                 [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry ],
             ];
-            
-            foreach( BodyPartType[] stage in stages )
-                if( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage) )
+
+            foreach (BodyPartType[] stage in stages)
+                if (Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage))
                     return stage;
 
             return [BodyPartType.Move, BodyPartType.Carry];
@@ -201,7 +217,7 @@ namespace RagnarokBot
 
             Room.Visual.Text(
                 EnergyUsed.ToString("0.00"),
-                new FractionalPosition( (double)Position.X, (double)Position.Y ),
+                new FractionalPosition((double)Position.X, (double)Position.Y),
                 new TextVisualStyle()
                 {
                     Color = new Color(255, 255, 0, 0),
@@ -215,41 +231,42 @@ namespace RagnarokBot
             if (priest.Store[ResourceType.Energy.ToString()] > 0)
             {
                 // Priest #2 does the chores
-                if( roles[Constants.ROLE_WORKER].IndexOf( priest ) == 1 )
+                if (roles[Constants.ROLE_WORKER].IndexOf(priest) == 1)
                 {
-                    if(Site != null)
+                    if (Site != null)
                     {
                         priest.Build(Site);
                         return;
-                    }                   
-                    
-                    if( Container != null &&
-                        Container.Hits < Container.HitsMax )
-                        priest.Repair( Container );
+                    }
+
+                    if (Container != null &&
+                        Container.Hits < Container.HitsMax)
+                        priest.Repair(Container);
 
                 }
-                
+
+                priest.MoveTo(PrayPositions[ roles[Constants.ROLE_WORKER].IndexOf( priest ) ]);
                 priest.Pray(Controller);
 
                 ControllerSign sign = (ControllerSign)Controller.Sign;
-                if( Controller.Sign == null || sign.Text != SHRINE_MESSAGE )
+                if (Controller.Sign == null || sign.Text != SHRINE_MESSAGE)
                 {
-                    priest.MoveTo( Controller.RoomPosition.Position );
-                    priest.Creep.SignController( Controller, SHRINE_MESSAGE );
+                    priest.MoveTo(Controller.RoomPosition.Position);
+                    priest.Creep.SignController(Controller, SHRINE_MESSAGE);
                 }
             }
             else
             {
-                if( Container != null )
+                if (Container != null)
                 {
                     priest.Take(Container, ResourceType.Energy, priest.Store[Constants.RESOURCE_CAPACITY]);
                     return;
                 }
 
-                WorkerTask task = hold.GetEnergy( priest );
+                WorkerTask task = hold.GetEnergy(priest);
 
                 priest.Task = task;
-                task.ResourceNeed -= priest.Store[ Constants.RESOURCE_CAPACITY ];
+                task.ResourceNeed -= priest.Store[Constants.RESOURCE_CAPACITY];
 
                 if (task != null)
                 {
@@ -258,18 +275,18 @@ namespace RagnarokBot
 
                     switch (task.Type)
                     {
-                        case TaskType.Collect:    
-                                targetStructure = task.target as IStructure;
-                                if (targetStructure != null)
-                                {
-                                    priest.Take(targetStructure, ResourceType.Energy, task.amount);
-                                }
+                        case TaskType.Collect:
+                            targetStructure = task.target as IStructure;
+                            if (targetStructure != null)
+                            {
+                                priest.Take(targetStructure, ResourceType.Energy, task.amount);
+                            }
                             break;
                         case TaskType.Take:
                             targetCreep = task.target as ICreep;
                             if (targetCreep != null)
                             {
-                                priest.Take(targetCreep, ResourceType.Energy,task.amount);
+                                priest.Take(targetCreep, ResourceType.Energy, task.amount);
                             }
                             break;
                         case TaskType.Fish:
@@ -287,15 +304,15 @@ namespace RagnarokBot
                 }
             }
         }
-    
-        void RunHoarder( Viking hoarder )
+
+        void RunHoarder(Viking hoarder)
         {
-            if( hoarder.Store[ ResourceType.Energy.ToString() ] == 0 )
+            if (hoarder.Store[ResourceType.Energy.ToString()] == 0)
             {
                 WorkerTask task = hold.GetEnergy(hoarder);
 
                 hoarder.Task = task;
-                task.ResourceNeed -= hoarder.Store[ Constants.RESOURCE_CAPACITY ];
+                task.ResourceNeed -= hoarder.Store[Constants.RESOURCE_CAPACITY];
 
                 if (task != null)
                 {
@@ -304,18 +321,18 @@ namespace RagnarokBot
 
                     switch (task.Type)
                     {
-                        case TaskType.Collect:    
-                                targetStructure = task.target as IStructure;
-                                if (targetStructure != null)
-                                {
-                                    hoarder.Take(targetStructure, ResourceType.Energy, task.amount);
-                                }
+                        case TaskType.Collect:
+                            targetStructure = task.target as IStructure;
+                            if (targetStructure != null)
+                            {
+                                hoarder.Take(targetStructure, ResourceType.Energy, task.amount);
+                            }
                             break;
                         case TaskType.Take:
                             targetCreep = task.target as ICreep;
                             if (targetCreep != null)
                             {
-                                hoarder.Take(targetCreep, ResourceType.Energy,task.amount);
+                                hoarder.Take(targetCreep, ResourceType.Energy, task.amount);
                             }
                             break;
                         case TaskType.Fish:
@@ -334,10 +351,10 @@ namespace RagnarokBot
             }
             else
             {
-                if( Container != null )
+                if (Container != null)
                 {
-                   hoarder.Transfer( Container, ResourceType.Energy, hoarder.Store[ Constants.RESOURCE_CAPACITY ]);
-                   return;
+                    hoarder.Transfer(Container, ResourceType.Energy, hoarder.Store[Constants.RESOURCE_CAPACITY]);
+                    return;
                 }
 
                 foreach (Viking priest in roles[Constants.ROLE_WORKER])
@@ -345,14 +362,14 @@ namespace RagnarokBot
                     Viking bestViking = null;
                     int mostCapacity = 0;
 
-                    if( priest.Store[ Constants.RESOURCE_CAPACITY ] > mostCapacity )
+                    if (priest.Store[Constants.RESOURCE_CAPACITY] > mostCapacity)
                     {
-                        mostCapacity = priest.Store[ Constants.RESOURCE_CAPACITY ];
+                        mostCapacity = priest.Store[Constants.RESOURCE_CAPACITY];
                         bestViking = priest;
                     }
 
-                    if( bestViking != null )                    
-                        hoarder.Transfer( priest.Creep, ResourceType.Energy, priest.Store[ Constants.RESOURCE_CAPACITY ]);
+                    if (bestViking != null)
+                        hoarder.Transfer(priest.Creep, ResourceType.Energy, priest.Store[Constants.RESOURCE_CAPACITY]);
                 }
             }
         }

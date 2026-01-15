@@ -18,7 +18,7 @@ namespace RagnarokBot
         List<IStructure> Fillables = new List<IStructure>();
         bool spawnFree = true;
 
-        Position[] RestPositions = new Position[2];
+        Position[] RestPositions = new Position[4];
 
 
         public Longhouse(Hold hold) : base(hold)
@@ -36,8 +36,9 @@ namespace RagnarokBot
             BuildLonghouse();
 
             RestPositions[0] = GetRelativePosition(  2,  2 );
-            RestPositions[1] = GetRelativePosition( -2, -2 );
-
+            RestPositions[1] = GetRelativePosition(  2, -2 );
+            RestPositions[2] = GetRelativePosition( -2,  2 );
+            RestPositions[3] = GetRelativePosition( -2, -2 );
 
             LookForPopulation();
 
@@ -163,7 +164,7 @@ namespace RagnarokBot
                 });
             }
 
-            List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
+            List<IConstructionSite> siteList = GetConstructions();
 
             if (siteList.Count > 0 && roles[ Constants.ROLE_WORKER ].Count == 0 )
             {
@@ -179,6 +180,22 @@ namespace RagnarokBot
                     InitialMemory = initialMemory
                 });
             }
+
+            if (siteList.Count > 0 && roles[Constants.ROLE_HOARDER].Count < 3 )
+            {
+                BodyPartType[] body = GetHoarderBody();
+                var initialMemory = game.CreateMemoryObject();
+                initialMemory.SetValue("role", Constants.ROLE_HOARDER);
+                initialMemory.SetValue("hold", Room.Name);
+                initialMemory.SetValue("home", settlementName);
+
+                request.Add(new SpawnRequest
+                {
+                    Body = body,
+                    InitialMemory = initialMemory
+                });
+            }
+
 
             return request;
         }
@@ -231,6 +248,7 @@ namespace RagnarokBot
             var ret = Spawn.SpawnCreep(request.Body, $"{name} {game.Time % 1000}", new(memory: request.InitialMemory));
             spawnFree = false;
         }
+        
         void Watchtowers()
         {
             foreach( IStructureTower tower in Towers )
@@ -336,8 +354,8 @@ namespace RagnarokBot
         void RunWorker( Viking worker )
         {   
             Position[] BuildPositions = [
-                GetRelativePosition(  1, 0 ), 
-                GetRelativePosition( -1, 0 )];
+                GetRelativePosition( 0,  1 ), 
+                GetRelativePosition( 0, -1 )];
             
 
             if( worker.Store[ResourceType.Energy.ToString()] == 0 )
@@ -345,30 +363,29 @@ namespace RagnarokBot
 
             for( int position_index = 0 ; position_index < BuildPositions.Length; position_index++ )
             {
-                List<IConstructionSite> siteList = ListSitesForBuildPos(position_index);
+                Position BuildPosition = BuildPositions[position_index];
+                List<IConstructionSite> siteList = ListSitesForBuildPos(BuildPosition);
 
-                if( siteList.Count > 0 ) worker.MoveTo( BuildPositions[position_index] );
-                foreach ( IConstructionSite site in siteList)
+                if( siteList.Count > 0 ) 
                 {
-                    if( worker.Build( site, false ) == 0 )
-                        return;
+                    worker.MoveTo( BuildPosition );
+                    foreach ( IConstructionSite site in siteList)
+                    {
+                        if( worker.Build( site, false ) == 0 )
+                            return;
+                    }
                 }
             }            
         }
 
-        List<IConstructionSite> ListSitesForBuildPos( int position_index )
+        List<IConstructionSite> ListSitesForBuildPos( Position buildPosition )
         {
-            List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
-
-            Position[] BuildPositions = [
-                GetRelativePosition( 0, 1 ), 
-                GetRelativePosition( 0,-1 )];
-
+            List<IConstructionSite> siteList = GetConstructions();
             List<IConstructionSite> response = new List<IConstructionSite>();
 
             foreach (IConstructionSite site in siteList)
             {
-                if( BuildPositions[position_index].LinearDistanceTo( site.RoomPosition.Position ) <= 3 )
+                if( buildPosition.LinearDistanceTo( site.RoomPosition.Position ) <= 3 )
                     response.Add( site );
             }
 

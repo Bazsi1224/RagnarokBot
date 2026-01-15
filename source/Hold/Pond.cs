@@ -116,7 +116,7 @@ namespace RagnarokBot
 
             foreach (Viking fisher in roles[Constants.ROLE_FISHER])
             {
-                if (fisher.Store[Constants.RESOURCE_CAPACITY] == 0)
+                if (fisher.Store[Constants.RESOURCE_CAPACITY] < fisher.HarvestCapacity )
                     DepositFisher(fisher);
                 else
                     fisher.Harvest(Source);

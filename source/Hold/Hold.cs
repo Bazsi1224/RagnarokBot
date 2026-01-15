@@ -196,7 +196,7 @@ namespace RagnarokBot
             foreach( Pond pond in ponds )
                 availableEnergy += pond.Output;
 
-            shrine.EnergyInput = 0.8 * availableEnergy;
+            shrine.EnergyInput = Math.Min( 15, 0.8 * availableEnergy);
 
             Dictionary<string, List<SpawnRequest>> requests = new Dictionary<string, List<SpawnRequest>>();            
 

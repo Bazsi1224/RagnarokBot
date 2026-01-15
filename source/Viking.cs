@@ -37,6 +37,10 @@ namespace RagnarokBot
         {
             get { return Creep.BodyType[BodyPartType.Work] * game.Constants.Creep.BuildPower; }
         }
+        public int CarryCapacity
+        {
+            get { return Creep.BodyType[BodyPartType.Carry] * game.Constants.Creep.CarryCapacity; }
+        }
 
         public Viking( ICreep? creep )
         {
@@ -85,7 +89,7 @@ namespace RagnarokBot
             }
         }
 
-        public int Pray( IStructureController controller )
+        public int Pray( IStructureController controller, bool moveToSite = true  )
         {
             if( controller == null )
             {
@@ -98,8 +102,12 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepUpgradeControllerResult.NotInRange:
-                    Creep.MoveTo( controller.RoomPosition );
-                    return 1;
+                    if( moveToSite ) 
+                    {
+                        Creep.MoveTo( controller.RoomPosition );
+                        return 1;
+                    }
+                    return -1;
                 case CreepUpgradeControllerResult.Ok:
                     return 0;
                 default:
