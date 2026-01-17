@@ -17,7 +17,6 @@ namespace RagnarokBot
         List<IStructureTower> Towers = new List<IStructureTower>();
         List<IStructure> Fillables = new List<IStructure>();
         bool spawnFree = true;
-
         Position[] RestPositions = new Position[4];
 
 
@@ -58,7 +57,7 @@ namespace RagnarokBot
             {
                 Towers.Add(tower);
                 Fillables.Add(tower);
-            }
+            }            
         }
 
         public override bool PlanPosition()

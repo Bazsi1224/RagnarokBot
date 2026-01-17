@@ -23,66 +23,67 @@ namespace RagnarokBot
         List<Pond> ponds = new List<Pond>();
         Shrine shrine;
 
-        public Hold( IRoom room )
+        public Hold(IRoom room)
         {
             Room = room;
 
-            foreach( string role in Constants.ROLES )
+            foreach (string role in Constants.ROLES)
                 roles[role] = new List<Viking>();
 
-            foreach( IStructureSpawn spawn in game.Spawns.Values )
-                spawns.Add( spawn );
+            foreach (IStructureSpawn spawn in game.Spawns.Values)
+                spawns.Add(spawn);
 
-            foreach (ICreep creep in game.Creeps.Values )
+            foreach (ICreep creep in game.Creeps.Values)
             {
-                creep.Memory.TryGetString("hold", out string hold );
-                if( hold == Room.Name )
+                creep.Memory.TryGetString("hold", out string hold);
+                if (hold == Room.Name)
                 {
                     Viking viking;
-                    
-                    creep.Memory.TryGetString("role", out string role );
-                    creep.Memory.TryGetString("home", out string home );
 
-                    if( role == null )
+                    creep.Memory.TryGetString("role", out string role);
+                    creep.Memory.TryGetString("home", out string home);
+
+                    if (role == null)
                         role = "Unassigned";
-                    
-                    if( home == null )
+
+                    if (home == null)
                         home = "hold";
 
-                    viking = new Viking( creep );
+                    viking = new Viking(creep);
 
-                    if( home == "hold" )
-                        roles[role].Add( viking );          
-                    Population.Add( new Viking( creep ) );
+                    if (home == "hold")
+                        roles[role].Add(viking);
+                    Population.Add(new Viking(creep));
 
 
                 }
             }
-            
+
             int i = 0;
-            foreach( ISource source in Room.Find<ISource>(false) )
+            foreach (ISource source in Room.Find<ISource>(false))
             {
-                ponds.Add( new Pond(source, i++, this) );
+                ponds.Add(new Pond(source, i++, this));
             }
 
             shrine = new Shrine(this);
-            longHouse = new Longhouse( this );
+            longHouse = new Longhouse(this);
             villages = new Village[2];
-            villages[0] = new Village( this, 0 );
-            villages[1] = new Village( this, 1 );
+            villages[0] = new Village(this, 0);
+            villages[1] = new Village(this, 1);
         }
 
         public void Run()
         {
+            DistributeEnergy();
             ManageRecruitment();
 
             RunWorkers();
-            try{ longHouse.Run();} catch( Exception e ) { Console.WriteLine( e ); }
-            try{ shrine.Run();} catch( Exception e ) { Console.WriteLine( e ); }        
-            foreach( Pond pond in ponds )
-                try{ pond.Run();} catch( Exception e ) { Console.WriteLine( e ); }
+            try { longHouse.Run(); } catch (Exception e) { Console.WriteLine(e); }
+            try { shrine.Run(); } catch (Exception e) { Console.WriteLine(e); }
+            foreach (Pond pond in ponds)
+                try { pond.Run(); } catch (Exception e) { Console.WriteLine(e); }
 
-            Report();            
+            Report();
         }
 
 
@@ -90,63 +91,78 @@ namespace RagnarokBot
         {
             string debugMessage = "";
 
-            foreach( Viking worker in roles[ Constants.ROLE_WORKER ] )
+            foreach (Viking worker in roles[Constants.ROLE_WORKER])
             {
                 try
                 {
-                    RunWorker( worker );
+                    RunWorker(worker);
                 }
-                catch( Exception e )
+                catch (Exception e)
                 {
-                    Console.WriteLine( $"Error running worker {worker.Name}: {e.Message}" );
-                    Console.WriteLine( e.StackTrace );
-                    Console.WriteLine( debugMessage );
+                    Console.WriteLine($"Error running worker {worker.Name}: {e.Message}");
+                    Console.WriteLine(e.StackTrace);
+                    Console.WriteLine(debugMessage);
                 }
             }
         }
 
-        void RunWorker( Viking worker )
+        void RunWorker(Viking worker)
         {
-            if( worker.Store[Constants.RESOURCE_CAPACITY] == 0 )
+            if (worker.Store[Constants.RESOURCE_CAPACITY] == 0)
             {
                 IStructureSpawn Spawn = new List<IStructureSpawn>(Room.Find<IStructureSpawn>(true))[0];
 
-                worker.Transfer( Spawn, ResourceType.Energy, worker.Store[ResourceType.Energy.ToString()] );
+                if (Spawn.Store.GetFreeCapacity(ResourceType.Energy) > 0)
+                {
+                    worker.Transfer(Spawn, ResourceType.Energy, worker.Store[ResourceType.Energy.ToString()]);
+                    return;
+                }
+                
+                List<IStructureExtension> extensions = new List<IStructureExtension>(Room.Find<IStructureExtension>(true));
+
+                foreach( IStructureExtension ext in extensions)
+                {
+                    if (ext.Store.GetFreeCapacity(ResourceType.Energy) > 0 )
+                    {
+                        worker.Transfer(ext, ResourceType.Energy, worker.Store[ResourceType.Energy.ToString()]);
+                        return;
+                    }
+                }
             }
             else
             {
                 worker.Task = GetEnergy(worker);
 
-                if( worker.Task == null ) return;
+                if (worker.Task == null) return;
 
                 IStructure targetStructure;
                 ICreep targetCreep;
 
-                switch( worker.Task.Type )
+                switch (worker.Task.Type)
                 {
                     case TaskType.Collect:
                         targetStructure = worker.Task.target as IStructure;
-                        if( targetStructure != null )
+                        if (targetStructure != null)
                         {
-                            worker.Take( targetStructure, ResourceType.Energy, worker.Task.amount );
+                            worker.Take(targetStructure, ResourceType.Energy, worker.Task.amount);
                         }
                         break;
                     case TaskType.Take:
                         targetCreep = worker.Task.target as ICreep;
-                        if( targetCreep != null )
+                        if (targetCreep != null)
                         {
-                            worker.Take( targetCreep, ResourceType.Energy, worker.Task.amount );
+                            worker.Take(targetCreep, ResourceType.Energy, worker.Task.amount);
                         }
                         break;
                     case TaskType.Fish:
                         ISource targetSource = worker.Task.target as ISource;
-                        if( targetSource != null )
+                        if (targetSource != null)
                         {
-                            worker.Harvest( targetSource );
+                            worker.Harvest(targetSource);
                         }
                         break;
                     default:
-                        Console.WriteLine( $"Worker {worker.Name} has no task!" );
+                        Console.WriteLine($"Worker {worker.Name} has no task!");
                         break;
                 }
             }
@@ -155,67 +171,77 @@ namespace RagnarokBot
 
         void Report()
         {
-            Console.WriteLine( $"{Room.Name} finished gracefully" );
+            Console.WriteLine($"{Room.Name} finished gracefully");
         }
 
-        public void RequestTask( WorkerTask task )
-        {
-            //Console.WriteLine( $"task {task.taskId} requested" );
-            tasks.Add(task);
-        }
-
-        public WorkerTask GetEnergy( Viking viking )
+        public WorkerTask GetEnergy(Viking viking)
         {
             List<WorkerTask> availableTasks = new List<WorkerTask>();
             foreach (Pond pond in ponds)
             {
-                WorkerTask task = pond.GetEnergy();    
-                if( task != null && task.ResourceNeed > 0 )
-                    availableTasks.Add(task);            
+                WorkerTask task = pond.GetEnergy();
+                if (task != null && task.ResourceNeed > 0)
+                    availableTasks.Add(task);
             }
 
-            if( availableTasks.Count == 0 )
+            if (availableTasks.Count == 0)
                 return null;
-            
+
             WorkerTask bestTask = null;
             int closestTask = 500;
 
-            foreach( WorkerTask task in availableTasks )
-                if( viking.Pos.LinearDistanceTo( task.target.RoomPosition.Position ) < closestTask )
+            foreach (WorkerTask task in availableTasks)
+                if (viking.Pos.LinearDistanceTo(task.target.RoomPosition.Position) < closestTask)
                 {
-                    closestTask = viking.Pos.LinearDistanceTo( task.target.RoomPosition.Position );
+                    closestTask = viking.Pos.LinearDistanceTo(task.target.RoomPosition.Position);
                     bestTask = task;
                 }
 
-            return bestTask;          
+            return bestTask;
         }
-    
-        void ManageRecruitment()
+
+        void DistributeEnergy()
         {
             double availableEnergy = 0.0;
-            foreach( Pond pond in ponds )
+            foreach (Pond pond in ponds)
                 availableEnergy += pond.Output;
-
-            shrine.EnergyInput = Math.Min( 15, 0.8 * availableEnergy);
-
-            Dictionary<string, List<SpawnRequest>> requests = new Dictionary<string, List<SpawnRequest>>();            
-
-            requests.Add( "self", OwnRecruitmentRequest());
-
-            foreach( Pond pond in ponds )
-                requests.Add( pond.Name, pond.GetSpawnRequest());
-
-            requests.Add( longHouse.Name, longHouse.GetSpawnRequest());
-            requests.Add( shrine.Name, shrine.GetSpawnRequest());
             
+            double energyLeft = availableEnergy;
 
-            foreach( var request in requests )
-                if( request.Value != null && request.Value.Count > 0 )
+            if( longHouse.EnergyNeed > 0 ) 
+            {
+                longHouse.EnergyInput = Math.Min(8, 0.4 * energyLeft);
+                energyLeft -= longHouse.EnergyInput;
+            }
+            
+            if( Room.Storage != null )
+                shrine.EnergyInput = Math.Min(8, 0.2 * energyLeft);
+            else
+                shrine.EnergyInput = Math.Min(14, 0.6 * energyLeft);
+        }
+
+        void ManageRecruitment()
+        {
+
+
+            Dictionary<string, List<SpawnRequest>> requests = new Dictionary<string, List<SpawnRequest>>();
+
+            requests.Add("self", OwnRecruitmentRequest());
+
+            foreach (Pond pond in ponds)
+                requests.Add(pond.Name, pond.GetSpawnRequest());
+
+            requests.Add(longHouse.Name, longHouse.GetSpawnRequest());
+            requests.Add(shrine.Name, shrine.GetSpawnRequest());
+
+
+            foreach (var request in requests)
+                if (request.Value != null && request.Value.Count > 0)
                 {
                     longHouse.SpawnViking(request.Value[0]);
                     break;
                 }
-            
+
         }
 
         List<SpawnRequest> OwnRecruitmentRequest()
@@ -223,21 +249,22 @@ namespace RagnarokBot
             List<SpawnRequest> request = new List<SpawnRequest>();
 
 
-            if( Population.Count <= 1 )
+            if (Population.Count <= 1)
             {
                 BodyPartType[] body = [BodyPartType.Work, BodyPartType.Carry, BodyPartType.Move];
                 var initialMemory = game.CreateMemoryObject();
                 initialMemory.SetValue("role", Constants.ROLE_WORKER);
-                initialMemory.SetValue("hold", Room.Name );
-                
+                initialMemory.SetValue("hold", Room.Name);
+
                 request.Add(
                      new SpawnRequest()
-                {
-                Body = body, 
-                InitialMemory = initialMemory} );                
+                     {
+                         Body = body,
+                         InitialMemory = initialMemory
+                     });
                 return request;
             }
-            
+
             return null;
         }
     };

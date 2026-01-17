@@ -15,10 +15,6 @@ namespace RagnarokBot
         IStructureController Controller;
         IStructureContainer Container;
         IConstructionSite Site;
-        public double EnergyUsed = 0;
-        public double EnergyNeed = 0;
-        public double EnergyInput = 0;
-
         Position[] PrayPositions = new Position[9];
 
         public Shrine(Hold hold) : base(hold)

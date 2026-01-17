@@ -17,11 +17,16 @@ namespace RagnarokBot
         protected Direction Orientation = Direction.Top;
         public List<Viking> Population = new List<Viking>();
         protected Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
+        protected List<IConstructionSite> Constructions;
 
         public int Width = 1;
         public int Height = 1;
-
         public string Name {get { return settlementName; }}
+
+        public double EnergyUsed = 0;
+        public double EnergyNeed = 0;
+        public double EnergyInput = 0;
+
 
         public Settlement(Hold hold)
         {
@@ -146,16 +151,18 @@ namespace RagnarokBot
 
         public List<IConstructionSite> GetConstructions()
         {
-            List<IConstructionSite> response = new List<IConstructionSite>();
+            if( Constructions != null ) return Constructions;
+
+            Constructions = new List<IConstructionSite>();
             List<IConstructionSite> siteList = new List<IConstructionSite>( Room.Find<IConstructionSite>(true) );
 
             foreach( IConstructionSite site in siteList )
             {
                 if( IsPositionInside( site.RoomPosition.Position ) )
-                    response.Add(site);
+                    Constructions.Add(site);
             }
-
-            return response;
+            
+            return Constructions;
         }
 }
 }

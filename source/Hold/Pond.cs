@@ -38,25 +38,6 @@ namespace RagnarokBot
 
             FindStructures();
 
-            if (Container != null &&
-                Container.Store.GetUsedCapacity(ResourceType.Energy) > 0)
-            {
-                int energy = Container.Store.GetUsedCapacity(ResourceType.Energy) ?? 0;
-
-                hold.RequestTask(
-                    new WorkerTask()
-                    {
-                        taskId = "Empty_Container_" + settlementName,
-                        target = Container,
-                        Type = TaskType.Collect,
-                        ResourceType = Constants.RESOURCE_CAPACITY,
-                        Severity = 0,
-                        ResourceNeed = energy,
-                        amount = energy
-                    }
-                    );
-            }
-
             foreach (Viking fisher in roles[Constants.ROLE_FISHER])
                 if (fisher.Pos.IsNextTo(Source.RoomPosition.Position))
                     Output += fisher.HarvestCapacity;
@@ -99,8 +80,13 @@ namespace RagnarokBot
             RunFishers();
 
 
+            int HarvestCapacity = 0;
+
+            foreach (Viking fisher in roles[Constants.ROLE_FISHER])
+                HarvestCapacity += fisher.HarvestCapacity;
+
             Room.Visual.Text(
-                Output.ToString("0.00"),
+                HarvestCapacity.ToString("0.00"),
                 new FractionalPosition((double)Position.X, (double)Position.Y),
                 new TextVisualStyle()
                 {
