@@ -67,24 +67,24 @@ namespace RagnarokBot
 
             for (int i = -2; i <= 2; i++)
             {
-                if (CheckPositionForContainer(GetRelativePosition( -2, i ), terrain))
+                if (CheckPositionForContainer(GetRelativePosition(-2, i), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( -2, i ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition(-2, i));
                     return;
                 }
-                if (CheckPositionForContainer(GetRelativePosition( 2, i ), terrain))
+                if (CheckPositionForContainer(GetRelativePosition(2, i), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( 2, i ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition(2, i));
                     return;
                 }
-                if (CheckPositionForContainer(GetRelativePosition( i, -2 ), terrain))
+                if (CheckPositionForContainer(GetRelativePosition(i, -2), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( i, -2 ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition(i, -2));
                     return;
                 }
-                if (CheckPositionForContainer(GetRelativePosition( i, 2 ), terrain))
+                if (CheckPositionForContainer(GetRelativePosition(i, 2), terrain))
                 {
-                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition( i, 2 ));
+                    Room.CreateConstructionSite<IStructureContainer>(GetRelativePosition(i, 2));
                     return;
                 }
             }
@@ -94,14 +94,14 @@ namespace RagnarokBot
         void FillPrayPositions()
         {
             Position basePosition = Controller.RoomPosition.Position;
-            if( Container != null ) basePosition = Container.RoomPosition.Position;
-            if( Site != null ) basePosition = Site.RoomPosition.Position;
+            if (Container != null) basePosition = Container.RoomPosition.Position;
+            if (Site != null) basePosition = Site.RoomPosition.Position;
 
             int i = 0;
-            for( int x = -1; x <= 1; x++ )
-                for( int y = -1; y <= 1; y++ )
-                    if( i < PrayPositions.Length )                
-                        PrayPositions[i++] = new Position( basePosition.X + x, basePosition.Y + y );
+            for (int x = -1; x <= 1; x++)
+                for (int y = -1; y <= 1; y++)
+                    if (i < PrayPositions.Length)
+                        PrayPositions[i++] = new Position(basePosition.X + x, basePosition.Y + y);
 
         }
 
@@ -117,13 +117,13 @@ namespace RagnarokBot
         public List<SpawnRequest> GetSpawnRequest()
         {
             List<SpawnRequest> request = new List<SpawnRequest>();
-            
+
             int CarryCapacity = 0;
             foreach (Viking hoarder in roles[Constants.ROLE_HOARDER])
                 CarryCapacity += hoarder.CarryCapacity;
 
 
-            if( CarryCapacity < EnergyUsed * 50 )
+            if (CarryCapacity < EnergyUsed * 50)
             {
                 BodyPartType[] body = GetHoarderBody();
                 var initialMemory = game.CreateMemoryObject();
@@ -175,19 +175,19 @@ namespace RagnarokBot
 
         public BodyPartType[] GetHoarderBody()
         {
-            BodyPartType[][] stages = [
-                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
-                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
-                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry],
-                [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry, BodyPartType.Move, BodyPartType.Carry ],
-            ];
+            int bandwidth = 2;
+            BodyPartType[] carryBlock = [BodyPartType.Move, BodyPartType.Carry];
+            List<BodyPartType> body = [BodyPartType.Move, BodyPartType.Carry];
 
-            foreach (BodyPartType[] stage in stages)
-                if (Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(stage))
-                    return stage;
+            while( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(body.ToArray()) && bandwidth < EnergyInput )
+            {
+                body.AddRange( carryBlock );
+                bandwidth += 2;
+            }
 
-            return [BodyPartType.Move, BodyPartType.Carry];
+            return body.ToArray();
         }
+
 
         public void Run()
         {
@@ -226,23 +226,17 @@ namespace RagnarokBot
         {
             if (priest.Store[ResourceType.Energy.ToString()] > 0)
             {
-                // Priest #2 does the chores
-                if (roles[Constants.ROLE_WORKER].IndexOf(priest) == 1)
+                priest.MoveTo(PrayPositions[roles[Constants.ROLE_WORKER].IndexOf(priest)]);
+                priest.Pray(Controller, false);
+
+                if (Site != null && priest.Store[ResourceType.Energy.ToString()] > 25)
                 {
-                    if (Site != null)
-                    {
-                        priest.Build(Site);
-                        return;
-                    }
-
-                    if (Container != null &&
-                        Container.Hits < Container.HitsMax)
-                        priest.Repair(Container);
-
+                    priest.Build(Site, false);
                 }
 
-                priest.MoveTo(PrayPositions[ roles[Constants.ROLE_WORKER].IndexOf( priest ) ]);
-                priest.Pray(Controller);
+                if (Container != null &&
+                    Container.Hits < Container.HitsMax)
+                    priest.Repair(Container);
 
                 ControllerSign sign = (ControllerSign)Controller.Sign;
                 if (Controller.Sign == null || sign.Text != SHRINE_MESSAGE)

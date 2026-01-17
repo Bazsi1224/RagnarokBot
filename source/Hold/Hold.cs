@@ -13,7 +13,8 @@ namespace RagnarokBot
     {
         IGame game = Program.game;
         public IRoom Room;
-        public List<Viking> Population = new List<Viking>();
+        public IWithStore PrimaryStorage;
+        public List<Viking> Population = new List<Viking>();        
         Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
         List<WorkerTask> tasks = new List<WorkerTask>();
         List<IStructureSpawn> spawns = new List<IStructureSpawn>();
@@ -58,6 +59,9 @@ namespace RagnarokBot
 
                 }
             }
+
+            if( Room.Storage != null )
+                PrimaryStorage = Room.Storage;
 
             int i = 0;
             foreach (ISource source in Room.Find<ISource>(false))
@@ -176,6 +180,20 @@ namespace RagnarokBot
 
         public WorkerTask GetEnergy(Viking viking)
         {
+            if( PrimaryStorage != null && PrimaryStorage.Store[ResourceType.Energy] > 0 )
+            {
+                return new WorkerTask()
+                {
+                    taskId = "Empty_Storage",
+                        target = PrimaryStorage as IStructure,
+                        Type = TaskType.Collect,
+                        ResourceType = Constants.RESOURCE_CAPACITY,
+                        Severity = 0,
+                        ResourceNeed = viking.CarryCapacity,
+                        amount = viking.CarryCapacity
+                };
+            }
+
             List<WorkerTask> availableTasks = new List<WorkerTask>();
             foreach (Pond pond in ponds)
             {
@@ -218,6 +236,8 @@ namespace RagnarokBot
                 shrine.EnergyInput = Math.Min(8, 0.2 * energyLeft);
             else
                 shrine.EnergyInput = Math.Min(14, 0.6 * energyLeft);
+
+            
         }
 
         void ManageRecruitment()

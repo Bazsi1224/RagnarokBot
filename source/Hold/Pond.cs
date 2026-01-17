@@ -5,6 +5,7 @@ using ScreepsDotNet.API;
 using ScreepsDotNet.API.World;
 using ScreepsDotNet;
 using System.ComponentModel;
+using System.Reflection.Metadata;
 
 namespace RagnarokBot
 {
@@ -72,18 +73,46 @@ namespace RagnarokBot
 
             }
 
+            if( hold.PrimaryStorage != null )
+            {                
+                if( roles[Constants.ROLE_HOARDER].Count < 1 )
+                {
+                    BodyPartType[] body = GetHoarderBody();
+                    var initialMemory = game.CreateMemoryObject();
+                    initialMemory.SetValue("role", "Hoarder");
+                    initialMemory.SetValue("hold", Room.Name);
+                    initialMemory.SetValue("home", settlementName);
+
+                    request.Add(new SpawnRequest
+                    {
+                        Body = body,
+                        InitialMemory = initialMemory
+                    });
+                }
+            }
+
             return request;
         }
 
         public void Run()
         {
-            RunFishers();
-
-
             int HarvestCapacity = 0;
 
             foreach (Viking fisher in roles[Constants.ROLE_FISHER])
                 HarvestCapacity += fisher.HarvestCapacity;
+            
+
+            foreach (Viking fisher in roles[Constants.ROLE_FISHER])
+            {
+                if (fisher.Store[Constants.RESOURCE_CAPACITY] < fisher.HarvestCapacity )
+                    DepositFisher(fisher);
+                else
+                    fisher.Harvest(Source);
+            }
+
+            foreach (Viking fisher in roles[Constants.ROLE_HOARDER])
+                RunHoarder( fisher );
+
 
             Room.Visual.Text(
                 HarvestCapacity.ToString("0.00"),
@@ -94,19 +123,6 @@ namespace RagnarokBot
                     Opacity = 1.0
                 }
             );
-        }
-
-        void RunFishers()
-        {
-            string debugMessage = "";
-
-            foreach (Viking fisher in roles[Constants.ROLE_FISHER])
-            {
-                if (fisher.Store[Constants.RESOURCE_CAPACITY] < fisher.HarvestCapacity )
-                    DepositFisher(fisher);
-                else
-                    fisher.Harvest(Source);
-            }
         }
 
         void DepositFisher(Viking fisher)
@@ -132,6 +148,24 @@ namespace RagnarokBot
             }
 
 
+        }
+
+        void RunHoarder( Viking hoarder )
+        {
+            if( hoarder.Store[ResourceType.Energy.ToString()] > 0 )
+            {
+                if( hold.PrimaryStorage != null )
+                {
+                    hoarder.Transfer( hold.PrimaryStorage as IStructure, ResourceType.Energy, hoarder.Store[ResourceType.Energy.ToString()] );
+                }
+            }
+            else
+            {
+                if( Container != null )
+                {
+                    hoarder.Take( Container, ResourceType.Energy, hoarder.CarryCapacity );
+                }
+            }
         }
 
         void FindStructures()
@@ -271,6 +305,21 @@ namespace RagnarokBot
                     return stage;
 
             return [BodyPartType.Move, BodyPartType.Carry, BodyPartType.Work, BodyPartType.Work];
+        }
+        
+        public BodyPartType[] GetHoarderBody()
+        {
+            int bandwidth = 2;
+            BodyPartType[] carryBlock = [BodyPartType.Move, BodyPartType.Carry];
+            List<BodyPartType> body = [BodyPartType.Move, BodyPartType.Carry];
+
+            while( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(body.ToArray()) && bandwidth < 10 )
+            {
+                body.AddRange( carryBlock );
+                bandwidth += 2;
+            }
+
+            return body.ToArray();
         }
     }
 }
