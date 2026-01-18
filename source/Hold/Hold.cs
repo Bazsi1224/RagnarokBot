@@ -18,11 +18,13 @@ namespace RagnarokBot
         Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
         List<WorkerTask> tasks = new List<WorkerTask>();
         List<IStructureSpawn> spawns = new List<IStructureSpawn>();
-
+        List<SpawnRequest> spawnRequests = new List<SpawnRequest>();
         Longhouse longHouse;
         Village[] villages;
         List<Pond> ponds = new List<Pond>();
         Shrine shrine;
+        List<Settlement> settlements = new List<Settlement>();
+        WorkerTask TakeFromStorageTask;
 
         public Hold(IRoom room)
         {
@@ -32,7 +34,8 @@ namespace RagnarokBot
                 roles[role] = new List<Viking>();
 
             foreach (IStructureSpawn spawn in game.Spawns.Values)
-                spawns.Add(spawn);
+                if (spawn.Room.Name == Room.Name)
+                    spawns.Add(spawn);
 
             foreach (ICreep creep in game.Creeps.Values)
             {
@@ -66,7 +69,9 @@ namespace RagnarokBot
             int i = 0;
             foreach (ISource source in Room.Find<ISource>(false))
             {
-                ponds.Add(new Pond(source, i++, this));
+                Pond pond = new Pond(source, i++, this);
+                ponds.Add(pond);
+                settlements.Add(pond);
             }
 
             shrine = new Shrine(this);
@@ -74,6 +79,12 @@ namespace RagnarokBot
             villages = new Village[2];
             villages[0] = new Village(this, 0);
             villages[1] = new Village(this, 1);
+
+            settlements.Add(shrine);
+            settlements.Add(longHouse);
+            settlements.Add(villages[0]);
+            settlements.Add(villages[1]);
+
         }
 
         public void Run()
@@ -175,14 +186,80 @@ namespace RagnarokBot
 
         void Report()
         {
+            IRoomVisual visual = Room.Visual;
+            visual.Rect( new FractionalPosition(0, 0), 5, 5,new RectVisualStyle(){ Fill = new Color( 128, 255, 255, 255 ) } );
+            
+            #region Draw Energy Bars
+            double w = 4.6;
+            double x = 0.2;
+            double energybarWidth = ponds.Count * 10;
+            visual.Rect( new FractionalPosition(0.1, 0.1), w + 0.2, 0.8,new RectVisualStyle(){ Fill = new Color( 128, 0, 0, 0 ) } );
+
+            double availableEnergy = 0.0;
+            foreach (Pond pond in ponds)
+                availableEnergy += pond.Output;
+            visual.Rect( new FractionalPosition( x, 0.15), w * availableEnergy / energybarWidth, 0.35,new RectVisualStyle(){ Fill = new Color( 255, 255, 255, 0 ) } );
+            
+            visual.Rect( new FractionalPosition(x, 0.5), w * shrine.EnergyInput / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 128, 128, 255 ) } );
+            x += w * shrine.EnergyInput / energybarWidth;
+
+            visual.Rect( new FractionalPosition(x, 0.5), w * longHouse.EnergyInput / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 128, 255, 128 ) } );
+            x += w * longHouse.EnergyInput / energybarWidth;
+
+            double creepCost = 0;
+            foreach (Viking viking in Population)
+                creepCost += Trainer.GetBodysetCost(viking.Creep.Body );
+
+            visual.Rect( new FractionalPosition(x, 0.5), w * creepCost / 1500.0 / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 192, 192, 192 ) } );
+
+
+            visual.Text( "Energy", new FractionalPosition(0.2, 1.3), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.5 Arial", Align = TextAlign.Left } );
+            #endregion
+
+            #region Draw Spawn Bar
+            w = 4.6;
+            x = 0.2;
+            double spawnbarWidth = 1500.0 * spawns.Count;
+            double utilization = 0.0;
+
+            visual.Rect( new FractionalPosition(0.1, 1.5), w + 0.2, 0.22,new RectVisualStyle(){ Fill = new Color( 128, 0, 0, 0 ) } );
+
+            double spawnCost = 0.0;
+            foreach (Viking viking in Population)
+                foreach( var bodypart in viking.Creep.Body )
+                    spawnCost += 3.0;
+            utilization += spawnCost;
+
+            visual.Rect( new FractionalPosition(x, 1.55), w * spawnCost / spawnbarWidth , 0.1,new RectVisualStyle(){ Fill = new Color( 255, 128, 128, 0 ) } );
+            x += w * spawnCost / spawnbarWidth;
+
+            spawnCost = 0.0;
+            foreach (var request in spawnRequests)
+                foreach( var bodypart in request.Body )
+                    spawnCost += 3.0;
+            utilization += spawnCost;
+
+            visual.Rect( new FractionalPosition(x, 1.55), w * spawnCost / spawnbarWidth , 0.1,new RectVisualStyle(){ Fill = new Color( 192, 140, 140, 0 ) } );
+            x += w * spawnCost / spawnbarWidth;
+
+            utilization /= spawnbarWidth;
+            visual.Text( $"Spawn capacity: {utilization:F1}", new FractionalPosition(0.1, 2.1), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.4 Arial", Align = TextAlign.Left } );
+            #endregion
+
+            visual.Text( $"Population: {Population.Count} (+{ spawnRequests.Count })", new FractionalPosition(0.1, 2.6), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.4 Arial", Align = TextAlign.Left } );
+            
+
             Console.WriteLine($"{Room.Name} finished gracefully");
         }
 
         public WorkerTask GetEnergy(Viking viking)
         {
-            if( PrimaryStorage != null && PrimaryStorage.Store[ResourceType.Energy] > 0 )
+            if( PrimaryStorage != null && 
+                PrimaryStorage.Store.GetUsedCapacity( ResourceType.Energy ) > 0 )
             {
-                return new WorkerTask()
+                if( TakeFromStorageTask != null )
+                    return TakeFromStorageTask;
+                TakeFromStorageTask = new WorkerTask()
                 {
                     taskId = "Empty_Storage",
                         target = PrimaryStorage as IStructure,
@@ -192,6 +269,7 @@ namespace RagnarokBot
                         ResourceNeed = viking.CarryCapacity,
                         amount = viking.CarryCapacity
                 };
+                return TakeFromStorageTask;
             }
 
             List<WorkerTask> availableTasks = new List<WorkerTask>();
@@ -226,6 +304,13 @@ namespace RagnarokBot
             
             double energyLeft = availableEnergy;
 
+
+            double creepCost = 0;
+            foreach (Viking viking in Population)
+                creepCost += Trainer.GetBodysetCost(viking.Creep.Body ) / 1500.0;
+            
+            energyLeft -= creepCost;
+
             if( longHouse.EnergyNeed > 0 ) 
             {
                 longHouse.EnergyInput = Math.Min(8, 0.4 * energyLeft);
@@ -233,17 +318,22 @@ namespace RagnarokBot
             }
             
             if( Room.Storage != null )
-                shrine.EnergyInput = Math.Min(8, 0.2 * energyLeft);
-            else
-                shrine.EnergyInput = Math.Min(14, 0.6 * energyLeft);
+            {
+                if(Room.Storage.Store.GetUsedCapacity( ResourceType.Energy ) < 50000 )
+                {
+                    energyLeft -= Math.Min(10, 0.3 * energyLeft);
+                }
+                
+            }
+                
+
+            shrine.EnergyInput = Math.Min(15, energyLeft);
 
             
         }
 
         void ManageRecruitment()
         {
-
-
             Dictionary<string, List<SpawnRequest>> requests = new Dictionary<string, List<SpawnRequest>>();
 
             requests.Add("self", OwnRecruitmentRequest());
@@ -254,8 +344,11 @@ namespace RagnarokBot
             requests.Add(longHouse.Name, longHouse.GetSpawnRequest());
             requests.Add(shrine.Name, shrine.GetSpawnRequest());
 
+            foreach (var request in requests)    
+                if (request.Value != null && request.Value.Count > 0)
+                    spawnRequests.AddRange( request.Value );
 
-            foreach (var request in requests)
+            foreach (var request in requests)        
                 if (request.Value != null && request.Value.Count > 0)
                 {
                     longHouse.SpawnViking(request.Value[0]);

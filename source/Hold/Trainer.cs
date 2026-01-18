@@ -21,6 +21,16 @@ namespace RagnarokBot
             return cost;
         }
 
+        public static int GetBodysetCost( IEnumerable<BodyPart<BodyPartType>> body )
+        {
+            int cost = 0;
+            foreach( BodyPart<BodyPartType> part in body )
+                cost += ScreepsDotNet.Program.game.Constants.GetBodyPartCost( part.Type );
+
+            return cost;
+        }
+
+
         static readonly string[] NAMES = {
             "Olaf", "Erik", "Leif", "Harald", "Ragnar", "Bjorn", "Ivar", "Sigurd", "Gunnar", "Ulf",
             "Astrid", "Freya", "Ingrid", "Sigrid", "Helga", "Thyra", "Gunnhild", "Kari", "Liv", "Runa",

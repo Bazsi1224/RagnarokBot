@@ -245,6 +245,11 @@ namespace RagnarokBot
             {
                 amount = Store[Constants.RESOURCE_CAPACITY];
             }
+
+            if( (target as IWithStore).Store[resource] < amount )
+            {
+                amount = (target as IWithStore).Store[resource];
+            }
             
             CreepWithdrawResult ret = this.Creep.Withdraw( target, resource, amount );
 
