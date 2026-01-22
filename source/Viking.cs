@@ -313,6 +313,28 @@ namespace RagnarokBot
                     Console.WriteLine( $"Repair failed: {ret}" );
                     return;
             }
+        } 
+        
+        public void Claim( IStructureController targetStructure )
+        {
+            if( targetStructure == null )
+            {
+                Console.WriteLine( "No target structure to claim!" );
+                return;
+            }
+
+            CreepClaimControllerResult ret = Creep.ClaimController( targetStructure );
+            switch( ret )
+            {
+                case CreepClaimControllerResult.NotInRange:
+                    Creep.MoveTo( targetStructure.RoomPosition );
+                    return;
+                case CreepClaimControllerResult.Ok:
+                    return;
+                default:
+                    Console.WriteLine( $"Claim failed: {ret}" );
+                    return;
+            }
         }
     }
 }

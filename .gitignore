@@ -4,4 +4,4 @@
 bin
 obj
 
-deploy.sh
+deploy*

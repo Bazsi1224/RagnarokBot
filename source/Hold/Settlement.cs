@@ -99,7 +99,9 @@ namespace RagnarokBot
                 if( viking.Home == settlementName)
                 {
                     Population.Add( viking );
-                    roles[viking.Role].Add( viking ); 
+                    if ( roles.ContainsKey( viking.Role ) )
+                        roles[viking.Role].Add( viking ); 
+
                 }
             }
         }

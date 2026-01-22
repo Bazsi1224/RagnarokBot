@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using ScreepsDotNet.API;
 using ScreepsDotNet.API.World;
 using ScreepsDotNet;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata;
+
 
 namespace RagnarokBot
 {
@@ -36,6 +35,7 @@ namespace RagnarokBot
             foreach (IStructureSpawn spawn in game.Spawns.Values)
                 if (spawn.Room.Name == Room.Name)
                     spawns.Add(spawn);
+            Console.WriteLine($"Found {spawns.Count} spawns in hold {Room.Name}");
 
             foreach (ICreep creep in game.Creeps.Values)
             {
@@ -62,6 +62,7 @@ namespace RagnarokBot
 
                 }
             }
+            Console.WriteLine($"Found {Population.Count} vikings in hold {Room.Name}");
 
             if( Room.Storage != null )
                 PrimaryStorage = Room.Storage;
@@ -243,7 +244,8 @@ namespace RagnarokBot
             x += w * spawnCost / spawnbarWidth;
 
             utilization /= spawnbarWidth;
-            visual.Text( $"Spawn capacity: {utilization:F1}", new FractionalPosition(0.1, 2.1), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.4 Arial", Align = TextAlign.Left } );
+            utilization *= 100;
+            visual.Text( $"Spawn capacity: {utilization:F1}%", new FractionalPosition(0.1, 2.1), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.4 Arial", Align = TextAlign.Left } );
             #endregion
 
             visual.Text( $"Population: {Population.Count} (+{ spawnRequests.Count })", new FractionalPosition(0.1, 2.6), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.4 Arial", Align = TextAlign.Left } );

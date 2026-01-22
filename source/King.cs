@@ -13,11 +13,22 @@ namespace RagnarokBot
 
         public void Loop()
         {
+            foreach( IFlag flag in game.Flags.Values )
+            {
+                switch( flag.Color )
+                {
+                    case FlagColor.Green:
+                        Conqer conqer = new Conqer( flag );
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
 
             holds = new List<Hold>();
 
-            foreach( IStructureSpawn spawn in Program.game.Spawns.Values )
-                holds.Add( new Hold( spawn.Room ) );
             
             IMemoryObject creepsMemory;
 
@@ -31,16 +42,13 @@ namespace RagnarokBot
                     }
                 }
             
-            Run();
+            foreach( IStructureSpawn spawn in Program.game.Spawns.Values )
+                holds.Add( new Hold( spawn.Room ) );
+            foreach( Hold hold in holds )
+                hold.Run();           
+            
 
             Console.WriteLine($"King year of {Program.game.Time} ended gracefully! CPU:{ Program.game.Cpu.GetUsed() }");
-        }
-
-
-        void Run()
-        {
-            foreach( Hold hold in holds )
-                hold.Run();
         }
 
     };
