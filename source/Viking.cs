@@ -59,7 +59,15 @@ namespace RagnarokBot
             Store[ResourceType.Energy.ToString()] = Creep.Store.GetUsedCapacity( ResourceType.Energy ) ?? 0;
             Store[Constants.RESOURCE_CAPACITY] = Creep.Store.GetFreeCapacity( ResourceType.Energy ) ?? 0;
         }
-
+        public int MoveTo( RoomPosition target )
+        {
+            game.PathFinder.Search( 
+                Creep.RoomPosition,
+                new Goal( target, 1 )
+            );
+            MoveTo( target );
+            return 1;
+        }
         public int MoveTo( Position target )
         {
             Creep.MoveTo( target );
@@ -79,7 +87,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepHarvestResult.NotInRange:
-                    Creep.MoveTo( source.RoomPosition );
+                    MoveTo( source.RoomPosition );
                     return 1;
                 case CreepHarvestResult.Ok:
                     return 0;
@@ -104,7 +112,7 @@ namespace RagnarokBot
                 case CreepUpgradeControllerResult.NotInRange:
                     if( moveToSite ) 
                     {
-                        Creep.MoveTo( controller.RoomPosition );
+                        MoveTo( controller.RoomPosition );
                         return 1;
                     }
                     return -1;
@@ -140,7 +148,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepTransferResult.NotInRange:
-                    Creep.MoveTo( target.RoomPosition );
+                    MoveTo( target.RoomPosition );
                     return 1;
                 case CreepTransferResult.Ok:
                     return 0;
@@ -172,7 +180,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepTransferResult.NotInRange:
-                    Creep.MoveTo( target.RoomPosition );
+                    MoveTo( target.RoomPosition );
                     return 1;
                 case CreepTransferResult.Ok:
                     return 0;
@@ -195,7 +203,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepPickupResult.NotInRange:
-                    Creep.MoveTo( resource.RoomPosition );
+                    MoveTo( resource.RoomPosition );
                     return 1;
                 case CreepPickupResult.Ok:
                     return 0;
@@ -223,7 +231,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepTransferResult.NotInRange:
-                    Creep.MoveTo( targetCreep.RoomPosition );
+                    MoveTo( targetCreep.RoomPosition );
                     return;
                 case CreepTransferResult.Ok:
                     return;
@@ -256,7 +264,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepWithdrawResult.NotInRange:
-                    Creep.MoveTo( target.RoomPosition );
+                    MoveTo( target.RoomPosition );
                     return;
                 case CreepWithdrawResult.Ok:
                     return;
@@ -282,7 +290,7 @@ namespace RagnarokBot
                 case CreepBuildResult.NotInRange:
                     if( moveToSite ) 
                     {
-                        Creep.MoveTo( targetConstructionSite.RoomPosition );
+                        MoveTo( targetConstructionSite.RoomPosition );
                         return 1;
                     }
                     return -1;
@@ -305,7 +313,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepRepairResult.NotInRange:
-                    Creep.MoveTo( targetStructure.RoomPosition );
+                    MoveTo( targetStructure.RoomPosition );
                     return;
                 case CreepRepairResult.Ok:
                     return;
@@ -327,7 +335,7 @@ namespace RagnarokBot
             switch( ret )
             {
                 case CreepClaimControllerResult.NotInRange:
-                    Creep.MoveTo( targetStructure.RoomPosition );
+                    MoveTo( targetStructure.RoomPosition );
                     return;
                 case CreepClaimControllerResult.Ok:
                     return;

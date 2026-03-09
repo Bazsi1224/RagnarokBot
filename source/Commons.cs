@@ -8,11 +8,12 @@ namespace RagnarokBot
 
     public static class Constants
     {
+        public const string ROLE_WARRIOR = "Warrior";
         public const string ROLE_CONQUERER = "Conquerer";
         public const string ROLE_WORKER = "Worker";
         public const string ROLE_FISHER = "Fisher";
         public const string ROLE_HOARDER = "Hoarder";
-        public static readonly string[] ROLES = { ROLE_WORKER, ROLE_FISHER, ROLE_HOARDER };
+        public static readonly string[] ROLES = { ROLE_WORKER, ROLE_FISHER, ROLE_HOARDER, ROLE_CONQUERER, ROLE_WARRIOR };
 
 
         public const string RESOURCE_CAPACITY = "Capacity";

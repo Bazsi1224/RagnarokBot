@@ -13,7 +13,8 @@ namespace RagnarokBot
         IGame game = Program.game;
         public IRoom Room;
         public IWithStore PrimaryStorage;
-        public List<Viking> Population = new List<Viking>();        
+        public List<Viking> Population = new List<Viking>();    
+        public List<Longboat> LongboatsToSupport = new List<Longboat>();    
         Dictionary<string, List<Viking>> roles = new Dictionary<string, List<Viking>>();
         List<WorkerTask> tasks = new List<WorkerTask>();
         List<IStructureSpawn> spawns = new List<IStructureSpawn>();
@@ -24,6 +25,7 @@ namespace RagnarokBot
         Shrine shrine;
         List<Settlement> settlements = new List<Settlement>();
         WorkerTask TakeFromStorageTask;
+        Dictionary<string, double> energyInput = new Dictionary<string, double>();        
 
         public Hold(IRoom room)
         {
@@ -57,7 +59,7 @@ namespace RagnarokBot
 
                     if (home == "hold")
                         roles[role].Add(viking);
-                    Population.Add(new Viking(creep));
+                    Population.Add( viking );
 
 
                 }
@@ -201,18 +203,25 @@ namespace RagnarokBot
                 availableEnergy += pond.Output;
             visual.Rect( new FractionalPosition( x, 0.15), w * availableEnergy / energybarWidth, 0.35,new RectVisualStyle(){ Fill = new Color( 255, 255, 255, 0 ) } );
             
-            visual.Rect( new FractionalPosition(x, 0.5), w * shrine.EnergyInput / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 128, 128, 255 ) } );
-            x += w * shrine.EnergyInput / energybarWidth;
+            Dictionary<string, Color> FILL_COLORS =
+            new Dictionary<string, Color>()
+            {
+                {"shrine" , new Color( 255, 128, 128, 255 )},
+                {"creeps" , new Color( 255, 192, 192, 192 )},
+                {"storage" , new Color( 255, 128, 255, 128 )},
+                {"longhouse" , new Color( 255, 0, 255, 0 )},
+            };
 
-            visual.Rect( new FractionalPosition(x, 0.5), w * longHouse.EnergyInput / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 128, 255, 128 ) } );
-            x += w * longHouse.EnergyInput / energybarWidth;
+            foreach( var energy in energyInput )
+            {
+                Color fillColor = new Color( 255, 128, 128, 128 );
+                if( FILL_COLORS.ContainsKey( energy.Key ) )
+                    fillColor = FILL_COLORS[energy.Key];
 
-            double creepCost = 0;
-            foreach (Viking viking in Population)
-                creepCost += Trainer.GetBodysetCost(viking.Creep.Body );
-
-            visual.Rect( new FractionalPosition(x, 0.5), w * creepCost / 1500.0 / energybarWidth , 0.35,new RectVisualStyle(){ Fill = new Color( 255, 192, 192, 192 ) } );
-
+                double segmentWidth = w * energy.Value / energybarWidth;
+                visual.Rect( new FractionalPosition(x, 0.5), segmentWidth , 0.35,new RectVisualStyle(){ Fill = fillColor } );
+                x += segmentWidth;
+            }
 
             visual.Text( "Energy", new FractionalPosition(0.2, 1.3), new TextVisualStyle(){ Color = new Color(255,255,255,255), Font = "0.5 Arial", Align = TextAlign.Left } );
             #endregion
@@ -312,24 +321,30 @@ namespace RagnarokBot
                 creepCost += Trainer.GetBodysetCost(viking.Creep.Body ) / 1500.0;
             
             energyLeft -= creepCost;
+            energyInput.Add( "vikings", creepCost );
 
-            if( longHouse.EnergyNeed > 0 ) 
-            {
-                longHouse.EnergyInput = Math.Min(8, 0.4 * energyLeft);
-                energyLeft -= longHouse.EnergyInput;
-            }
-            
+
             if( Room.Storage != null )
             {
                 if(Room.Storage.Store.GetUsedCapacity( ResourceType.Energy ) < 50000 )
                 {
-                    energyLeft -= Math.Min(10, 0.3 * energyLeft);
+                    double energyToStore = Math.Min(10, 0.8 * energyLeft);
+                    energyLeft -= energyToStore;
+                    energyInput.Add( "storage", energyToStore );
                 }
                 
             }
-                
+            
+            if( longHouse.EnergyNeed > 0 ) 
+            {
+                longHouse.EnergyInput = Math.Min(8, 0.4 * energyLeft);
+                energyLeft -= longHouse.EnergyInput;
+                energyInput.Add( "longHouse", longHouse.EnergyInput );
+            }
+            
 
             shrine.EnergyInput = Math.Min(15, energyLeft);
+            energyInput.Add( "shrine", shrine.EnergyInput );
 
             
         }
@@ -345,6 +360,10 @@ namespace RagnarokBot
 
             requests.Add(longHouse.Name, longHouse.GetSpawnRequest());
             requests.Add(shrine.Name, shrine.GetSpawnRequest());
+
+
+            foreach( Longboat longboat in LongboatsToSupport )
+                requests.Add( longboat.Name, longboat.SpawnRequests );
 
             foreach (var request in requests)    
                 if (request.Value != null && request.Value.Count > 0)

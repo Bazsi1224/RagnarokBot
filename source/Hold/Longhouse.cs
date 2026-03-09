@@ -241,6 +241,7 @@ namespace RagnarokBot
 
         public void SpawnViking(SpawnRequest request)
         {
+            Console.WriteLine( $"Trying to spawn {request}" );
             if (!spawnFree) return;
 
             string name = Trainer.GetRandomName();

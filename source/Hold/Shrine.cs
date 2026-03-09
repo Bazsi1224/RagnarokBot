@@ -175,14 +175,14 @@ namespace RagnarokBot
 
         public BodyPartType[] GetHoarderBody()
         {
-            int bandwidth = 2;
+            double bandwidth = 2.5;
             BodyPartType[] carryBlock = [BodyPartType.Move, BodyPartType.Carry];
             List<BodyPartType> body = [BodyPartType.Move, BodyPartType.Carry];
 
             while( Room.EnergyCapacityAvailable >= Trainer.GetBodysetCost(body.ToArray()) && bandwidth < EnergyInput )
             {
                 body.AddRange( carryBlock );
-                bandwidth += 2;
+                bandwidth += 2.5;
             }
 
             return body.ToArray();
